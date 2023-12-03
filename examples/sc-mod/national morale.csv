@@ -1,0 +1,38 @@
+country,city,Major Minor,Morale Points
+Germany,Konigsberg,Minor,1000
+Germany,Breslau,Minor,1000
+Germany,Hamburg,Minor,1000
+Germany,Berlin,Major,3000
+Germany,Munich,Major,3000
+Germany,Dusseldorf,Major,3000
+France,Strasbourg,Minor,1000
+France,Damascus,Minor,1000
+France,Algiers,Minor,1000
+France,Paris,Major,3000
+France,Bordeaux,Major,3000
+France,Marseille,Major,3000
+UK,Gibraltar,Minor,1000
+UK,Malta,Minor,1000
+UK,Belfast,Minor,1000
+UK,London ,Major,3000
+UK,Manchester,Major,3000
+UK,Edinburgh,Major,3000
+Italy,Trieste,Minor,1000
+Italy,Tripoli,Minor,1000
+Italy,Naples,Minor,1000
+Italy,Rome,Major,3000
+Italy,Milan,Major,3000
+Italy,Palermo,Major,3000
+USA,Washington,Major,3000
+USA,New York,Major,3000
+USA,Boston,Major,3000
+Soviet Union,Smolensk,Minor,1000
+Soviet Union,Kiev,Minor,1000
+Soviet Union,Sevastapol,Minor,1000
+Soviet Union,Murmansk,Minor,1000
+Soviet Union,Archangelsk,Minor,1000
+Soviet Union,Baku,Minor,1000
+Soviet Union,Rostov,Minor,1000
+Soviet Union,Moscow,Major,3000
+Soviet Union,Stalingrad,Major,3000
+Soviet Union,Leningrad,Major,3000

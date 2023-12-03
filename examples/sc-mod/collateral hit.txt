@@ -1,0 +1,33 @@
+; Major NM Hex Lost, Collateral Hit
+{
+#NAME= $(City Name) $(MajorMinor) NM Hex, Collateral $(count)/$(total)
+#POPUP= $(allied_country.possessive) morale hit as $(City Name) falls
+#IMAGE= 
+#SOUND=
+#FLAG= 1 
+#TYPE= 1 
+#AI= 0 
+#LEVEL= 0 
+; Set global variable condition to always trigger (dummy value) 
+#GV= 1[1,100] 
+; Set link value to always trigger (dummy value) 
+#LINK= 0[0] 
+#COUNTRY_ID= $(Country.code)
+#TRIGGER= 100 
+; Set how many NM points should be gained or lost over X turns 
+#NM_UPDOWN= -1000
+#NM_TURNS= 1
+#DATE= 1950/05/01
+#OBJECTIVE_TEXT_POSITION= 173,74
+; Objective is in $(Country.team.enemy) hands
+#ALIGNMENT_POSITION= 173,74 [1]
+; Set variable conditions: 
+; 1st Line - $(Country.name) a member of the $(Country.team), fully mobilised, and not surrendered 
+#VARIABLE_CONDITION= 45 [2] [100] [0]
+; 2nd Line - USSR a member of the Axis, fully mobilised, and not surrendered
+#VARIABLE_CONDITION= 116 [1] [100] [0]
+; 3rd Line - France at least leans Allied, 50%+ mobilisation, and not surrendered
+#VARIABLE_CONDITION= 40 [2] [50] [0]
+; Dummy condition position (always satisfied)
+#CONDITION_POSITION= 0,0 [0,0] [0,0] [0] [0]
+}
