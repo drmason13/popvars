@@ -1,25 +1,37 @@
 # Definitions
 
-definitions come in two kinds:
+`definitions` are collections of _variables_.
 
-- `vars` - collection of _variables_ used to populate templates
-- `types` - named sets of _variables_ that can be referenced from `vars` or other `types`
+Within popvars, there's one special definition to be aware of: `$vars`.
+
+- `$vars` contains the variables used to populate your template.
+
+All other `definitions` have user defined names, we call these _named definitions_, or `types` for short.
+
+- `types` are named sets of variables that can be referenced from `definitions`
 
 That's a bit abstract, so let's see an example.
 
 Bob has a name (Bob), an age (42) and a job (builder).
 
-Bob might be recorded in a spreadsheet like this:
+Bob might be recorded as a single row in a spreadsheet like this:
 
 | name | age | job     |
 | ---- | --- | ------- |
 | Bob  | 42  | builder |
 
-`name`, `age` and `job` are the variables that Bob has. These variables belong to Bob. Bob is one set of variables. There may be other sets of variables, but this one is Bob.
+- The row is a `variable`
+- The columns `name`, `age` and `job` are the `fields`
+- The table is a `definition`
+- each cell (other than the header) contains a `value`
 
-The value of `age` for Bob is `42`.
+The `value` of `age` for the first `variable` in this `definition` is `42`.
 
-We can add lots of other people, who will also have names, ages, and jobs. They have the same set of variables as Bob, but with their own values.
+All `variables` in this `definition` have the same `fields`, just like each row in a table has the same columns.
+
+Each `variable` in the `definition` has its own `value` for each `field`.
+
+We can put lots of other people to in our table along with Bob, who will also have names, ages, and jobs but with their own values.
 
 | name  | age | job         |
 | ----- | --- | ----------- |
@@ -37,23 +49,29 @@ Now we have a lot of people who have jobs, let's define a job `type` and associa
 
 `$id` is a special field that popvars understands. `$id` is what we use to refer to a job, so it must be different for every job we want to use.
 
-`types` aren't available to be interpolated directly, they have to be accessed via `vars`. For example we can't just put `$(sector)` in our template when we're populating our template, we have to get to it through `job`:
+`types` aren't available to be interpolated directly, they have to be accessed via `$vars`. For example we can't just put `$(sector)` in our template, we have to get to it through `job`:
 
 `$(name) works in $(job.sector)`
 
 becomes
 
-> Bob works in construction Alice works in legal Mo works in hair
+> Bob works in construction
 
-When popvars sees `builder` in the `job` field, it knows that `job` is a `type`, so it looks for `builder` in `job` using the `$id` field and finds that the `sector` is `construction`.
+> Alice works in legal
+
+> Mo works in hair
+
+When popvars sees `builder` in the `job` field, it knows that `job` is a `type`, so it looks for a variable in `job` with the `$id` of `builder` and finds one, in that `variable` the `sector` is `construction`.
 
 ---
 
 How are these definitions made?
 
-Definitions can be made using spreadsheets! Each spreadsheet should have **one** `vars` sheet, and as many other sheets that they like defining `types`. The name of each sheet (other than the `vars` sheet) is the name of the `type`.
+It's no coincidence that `definitions` look a lot like spreadsheets: Definitions can be made using spreadsheets!
 
-The `vars` sheet is the one used to populate templates.
+Each spreadsheet should have **one** `$vars` sheet, and as many other sheets that they like defining `types`. The name of each sheet (other than the `$vars` sheet) is the name of the `type`.
+
+The `$vars` sheet is the one used to populate templates.
 
 For every sheet:
 
@@ -61,6 +79,17 @@ For every sheet:
 - Each **row** in a sheet is an `instance`.
 
 Here's a more complete example listing the names and contents of some sheets in a spreadsheet file (a.k.a. a workbook).
+
+<`$vars` sheet>
+
+```
+country,city,
+Germany,Konigsberg
+France,Marseille
+UK,Gibraltar
+USA,Boston
+Soviet Union,Smolensk
+```
 
 <`country` sheet>
 
@@ -72,17 +101,6 @@ UK,112
 Italy,59
 USA,115
 Soviet Union,116
-```
-
-<`vars` sheet>
-
-```
-country,city,
-Germany,Konigsberg
-France,Marseille
-UK,Gibraltar
-USA,Boston
-Soviet Union,Smolensk
 ```
 
 To populate a template with variables using these definitions, we need a template! templates are just plain text files:
@@ -105,13 +123,13 @@ USA with code 115 contains Boston.
 Soviet Union with code 116 contains Smolensk.
 ```
 
-You might have noticed that there's no Italy in the output. Not every defined type has to be used, only the ones referenced by `vars` are used.
+You might have noticed that there's no Italy in the output. Not every defined type has to be used, only the ones referenced by `$vars` are used.
 
 `$outfile` is another special field like `$id` used to tell popvars where to put the output. Each row is populated and then added to the `$outfile`, in order. This lets you output to multiple different files at once!
 
 Another way to specify multiple different output files at once is to make a template that, once populated with variables, is used to define the path to a file to write to. This is done using the `TBD` arg.
 
-<`vars` sheet>
+<`$vars` sheet>
 
 ```
 $outfile,country,city,

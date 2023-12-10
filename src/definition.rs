@@ -1,7 +1,3 @@
-mod field;
-mod value;
-mod vars;
-
 use std::{
     collections::HashMap,
     fs::File,
@@ -11,17 +7,15 @@ use std::{
 
 use erreport::path::ErrorPaths;
 
-use crate::template::Template;
-
-use self::vars::{Type, Vars};
+use crate::table::{self, Table};
 
 #[derive(Debug)]
 pub struct Definition {
-    /// Each VarSet in Vars is used to populate a template
-    pub vars: Vars,
+    /// This table is used to populate the template
+    pub vars: Table,
 
-    /// Types are keyed by name so they can easily be retrieved
-    pub types: HashMap<String, Type>,
+    /// defs are Tables keyed by name that can be used to resolve lookups
+    pub defs: HashMap<String, Table>,
 }
 
 impl Definition {
@@ -30,9 +24,14 @@ impl Definition {
         todo!("read definitions from ods file")
     }
 
-    /// vars is required, types may be empty. Strings are expected to be in csv format.
-    pub fn from_csv_files(vars: &Path, types: &[PathBuf]) -> anyhow::Result<Self> {
-        let types = types
+    /// vars is required, defs may be empty. Strings are expected to be in csv format.
+    pub fn from_csv_files(vars: &Path, defs: &[PathBuf]) -> anyhow::Result<Self> {
+        let vars = File::open(vars)
+            .path(vars)
+            .map(BufReader::new)
+            .map(|reader| table::from_csv("vars".to_owned(), reader))??;
+
+        let defs = defs
             .iter()
             .map(|path| {
                 (
@@ -49,29 +48,16 @@ impl Definition {
             })
             .map(|(reader_res, name_res)| {
                 reader_res.map(|reader| {
-                    name_res.map(|name| match Type::from_csv(reader, name.to_string()) {
+                    name_res.map(|name| match table::from_csv(name.to_string(), reader) {
                         Ok(type_) => Ok((name.to_string(), type_)),
                         Err(e) => Err(anyhow::anyhow!(e)),
                     })
                 })
             })
-            .collect::<Result<Result<Result<HashMap<String, Type>, _>, _>, _>>()???;
+            .collect::<Result<Result<Result<HashMap<String, Table>, _>, _>, _>>()???;
 
-        let vars = File::open(vars)
-            .path(vars)
-            .map(BufReader::new)
-            .map(Vars::from_csv)??;
-
-        let definition = Definition { vars, types };
+        let definition = Definition { vars, defs };
 
         Ok(definition)
-    }
-
-    pub fn render(&self, template: Template) -> String {
-        let _ = template;
-        // loop through the template and replace each interpolation with the values we have defined
-
-        // dot expressions (typeId.field) should look up their values from the field of the type instance with id typeId.
-        todo!()
     }
 }

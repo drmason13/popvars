@@ -1,3 +1,3 @@
-id,enemy,possessive
-Allies,Soviets,Allied
-Soviets,Allies,Soviet
+$id,enemy,possessive,code
+Allies,Soviets,Allied,1
+Soviets,Allies,Soviet,2

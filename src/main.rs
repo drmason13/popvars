@@ -1,8 +1,7 @@
 use std::path::PathBuf;
 
-use popvars::Definition;
-
 use clap::Parser;
+use popvars::Definition;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
