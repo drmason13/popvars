@@ -4,28 +4,28 @@
 #POPUP= $(country@Enemy Country.team) celebrate as $(city) falls
 #IMAGE= 
 #SOUND=
-#FLAG= 1 
-#TYPE= 1 
-#AI= 0 
-#LEVEL= 0 
-;; Set global variable condition to always trigger (dummy value) 
-#GV= 1[1,100] 
-;; Set link value to always trigger (dummy value) 
-#LINK= 0[0] 
+#FLAG= 1
+#TYPE= 1
+#AI= 0
+#LEVEL= 0
+;; Set global variable condition to always trigger (dummy value)
+#GV= 1[1,100]
+;; Set link value to always trigger (dummy value)
+#LINK= 0[0]
 #COUNTRY_ID=$(country@Enemy Country.code)
-#TRIGGER= 100 
-; Set how many NM points should be gained or lost over X turns 
+#TRIGGER= 100
+; Set how many NM points should be gained or lost over X turns
 #NM_UPDOWN= $(Morale Points)
 #NM_TURNS= 1
 #DATE= 1950/05/01
 #OBJECTIVE_TEXT_POSITION= $(city.coords)
 ; Objective is in $(country.team) hands
 #ALIGNMENT_POSITION= $(city.coords) [1]
-; Set variable conditions: 
-; 1st Line - $(country) a member of the $(country.team), fully mobilised, and not surrendered 
+; Set variable conditions:
+; 1st Line - $(country) a member of the $(country.team), fully mobilised, and not surrendered
 #VARIABLE_CONDITION= $(country.code) [$(country.team.code)] [100] [0]
 ; 2nd Line - $(Enemy Country) a member of the $(country@Enemy Country.team), fully mobilised, and not surrendered
-#VARIABLE_CONDITION= $(country@Enemy Country.code) [country@Enemy Country.team.code] [100] [0]
+#VARIABLE_CONDITION= $(country@Enemy Country.code) [$(country@Enemy Country.team.code)] [100] [0]
 ;; Dummy condition position (always satisfied)
 #CONDITION_POSITION= 0,0 [0,0] [0,0] [0] [0]
 }
@@ -34,28 +34,28 @@
 #POPUP= $(country.possessive) morale hit hard as $(city) falls
 #IMAGE= 
 #SOUND=
-#FLAG= 1 
-#TYPE= 1 
-#AI= 0 
-#LEVEL= 0 
-; Set global variable condition to always trigger (dummy value) 
-#GV= 1[1,100] 
-; Set link value to always trigger (dummy value) 
-#LINK= 0[0] 
+#FLAG= 1
+#TYPE= 1
+#AI= 0
+#LEVEL= 0
+; Set global variable condition to always trigger (dummy value)
+#GV= 1[1,100]
+; Set link value to always trigger (dummy value)
+#LINK= 0[0]
 #COUNTRY_ID= $(country.code)
-#TRIGGER= 100 
-; Set how many NM points should be gained or lost over X turns 
+#TRIGGER= 100
+; Set how many NM points should be gained or lost over X turns
 #NM_UPDOWN= -$(Morale Points)
 #NM_TURNS= 1
 #DATE= 1950/05/01
 #OBJECTIVE_TEXT_POSITION= $(city.coords)
 ; Objective is in $(country.team) hands
 #ALIGNMENT_POSITION= $(city.coords) [1]
-; Set variable conditions: 
-; 1st Line - Germany a member of the Allies, fully mobilised, and not surrendered 
-#VARIABLE_CONDITION= $(country.code) [2] [100] [0]
-; 2nd Line - USSR a member of the Axis, fully mobilised, and not surrendered
-#VARIABLE_CONDITION= 116 [1] [100] [0]
+; Set variable conditions:
+; 1st Line - $(country) a member of the $(country.team), fully mobilised, and not surrendered
+#VARIABLE_CONDITION= $(country.code) [$(country.team.code)] [100] [0]
+; 2nd Line - $(Enemy Country) a member of the $(country@Enemy Country.team), fully mobilised, and not surrendered
+#VARIABLE_CONDITION= $(country@Enemy Country.code) [$(country@Enemy Country.team.code)] [100] [0]
 ; Dummy condition position (always satisfied)
 #CONDITION_POSITION= 0,0 [0,0] [0,0] [0] [0]
 }
