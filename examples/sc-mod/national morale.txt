@@ -15,7 +15,7 @@
 #COUNTRY_ID=$(country@Enemy Country.code)
 #TRIGGER= 100
 ; Set how many NM points should be gained or lost over X turns
-#NM_UPDOWN= $(Morale Points)
+#NM_UPDOWN= $(NM points)
 #NM_TURNS= 1
 #DATE= 1950/05/01
 #OBJECTIVE_TEXT_POSITION= $(city.coords)
@@ -45,7 +45,7 @@
 #COUNTRY_ID= $(country.code)
 #TRIGGER= 100
 ; Set how many NM points should be gained or lost over X turns
-#NM_UPDOWN= -$(Morale Points)
+#NM_UPDOWN= -$(NM points)
 #NM_TURNS= 1
 #DATE= 1950/05/01
 #OBJECTIVE_TEXT_POSITION= $(city.coords)
