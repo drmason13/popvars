@@ -24,7 +24,7 @@ impl Expr {
 /// template using the following dot syntax:
 ///
 /// ```bash
-/// $(country.team)
+/// {{country.team}}
 /// ```
 ///
 /// This does a [lookup] in the `country` [table] and pops the value of the `team` field
@@ -45,16 +45,16 @@ pub type Context = Record;
 /// # Examples
 ///
 /// ```bash
-/// $(country.team)
+/// {{country.team}}
 /// # ^^^^^^^ this is the lookup
 ///
-/// $(country@country.team)
+/// {{country@country.team}}
 /// # ^^^^^^^^^^^^^^^ this is the same lookup with an explicit index
 ///
-/// $(country@Enemy Country.team)
+/// {{country@Enemy Country.team}}
 /// # ^^^^^^^^^^^^^^^^^^^^^ this lookup will index the `country` table using the value of `Enemy Country`
 ///
-/// $(country.team.team@Enemy.code)
+/// {{country.team.team@Enemy.code}}
 /// # ^^^^^^^^^^^^^^^^^^^^^^^ this is a nested lookup:
 /// // first country is looked up, then team is looked up, then team is looked up again using the `Enemy` field in team
 /// ```
@@ -67,10 +67,10 @@ pub struct Lookup {
     /// if `index` is None, `table_name` is used to index the current [`Context`].
     /// ```bash
     /// # indexes the current Context with "country", then uses that value to index the table "team"
-    /// $(country.team)
+    /// {{country.team}}
     ///
     /// # indexes the current Context with "Enemy Country", then uses that value to index the table "team"
-    /// $(country@Enemy Country.team)
+    /// {{country@Enemy Country.team}}
     /// ```
     ///
     /// [table index]: crate::Table::index
@@ -133,7 +133,7 @@ impl Lookup {
 /// A "direct expansion" expands to the value of `country`
 ///
 /// ```bash
-/// $(country)
+/// {{country}}
 /// ```
 /// ```text
 /// Germany
@@ -145,7 +145,7 @@ impl Lookup {
 /// See ['Lookup'] for more detail on lookups
 ///
 /// ```bash
-/// $(country.team)
+/// {{country.team}}
 /// ```
 /// ```text
 /// Allies
@@ -223,7 +223,7 @@ mod parsing {
     use super::*;
 
     pub fn expr(input: &str) -> ParseResult<Expr> {
-        let (inner, remaining) = brackets().lex(input)?;
+        let (inner, remaining) = brackets("{{", "}}").lex(input)?;
 
         let (expand, _) = expand().parse(inner)?;
 
@@ -236,15 +236,15 @@ mod parsing {
         // Maximum of 100 nested lookups... for sanity's sake!
         lookup
             .many(0..=100)
-            .then(segment("$(@.)"))
+            .then(segment("${@.}"))
             .then_end()
             .map(|(path, field)| Expand { path, field })
     }
 
     fn lookup(input: &str) -> ParseResult<'_, Lookup> {
-        let ((table_name, index), remaining) = segment("$(@.)")
+        let ((table_name, index), remaining) = segment("${@.}")
             .then(explicit_index().optional())
-            .then_skip('.') // this unambigously means we have a segment remaining after a lookup (requried for the field)
+            .then_skip('.') // this unambigously means we have a segment remaining after a lookup (required for the field)
             .parse(input)?;
 
         Ok((Lookup { index, table_name }, remaining))
@@ -254,8 +254,8 @@ mod parsing {
         '@'.skip_then(segment("@."))
     }
 
-    fn brackets() -> impl Lex {
-        segment_lexer(")").pad_with("$(", ")")
+    fn brackets(open: &'static str, close: &'static str) -> impl Lex {
+        segment_lexer("}").pad_with(open, close)
     }
 
     fn segment_lexer(terminating_chars: &'static str) -> impl Lex {
@@ -274,8 +274,8 @@ mod parsing {
     fn escape(esc: char) -> impl Parse<Output = char> {
         esc.skip_then(switch([
             (esc, esc),
-            ('(', '('),
-            (')', ')'),
+            ('{', '{'),
+            ('}', '}'),
             ('$', '$'),
             ('.', '.'),
             ('@', '@'),
@@ -283,7 +283,7 @@ mod parsing {
     }
 
     fn escape_lexer(esc: char) -> impl Lex {
-        esc.then(esc.or(one_of("()$.@")))
+        esc.then(esc.or(one_of("{}$.@")))
     }
 
     #[cfg(test)]
@@ -328,21 +328,41 @@ mod parsing {
 
         #[test]
         fn test_brackets() {
-            assert_lex_match(brackets(), "$(country)", "country");
+            assert_lex_match(brackets("{{", "}}"), "{{country}}", "country");
 
-            assert_lex_fails(brackets(), "$(country", "missing closing bracket");
-            assert_lex_fails(brackets(), "$country)", "missing opening bracket");
+            assert_lex_fails(
+                brackets("{{", "}}"),
+                "{{country}",
+                "missing closing bracket",
+            );
+            assert_lex_fails(
+                brackets("{{", "}}"),
+                "{country}}",
+                "missing opening bracket",
+            );
         }
 
         #[test]
         fn test_brackets_retain_escape_chars() {
-            assert_lex_match(brackets(), r"$(country@\(foo\))", r"country@\(foo\)");
-            assert_lex_match(brackets(), "$($().)", "$(");
-            assert_lex_match(brackets(), "$(country)", "country");
-            assert_lex_match(brackets(), r"$(cou\ntry)", r"cou\ntry");
+            assert_lex_match(
+                brackets("{{", "}}"),
+                r"{{country@\{foo\}}}",
+                r"country@\{foo\}",
+            );
+            assert_lex_match(brackets("{{", "}}"), "{{${{}}}}.)", "${{");
+            assert_lex_match(brackets("{{", "}}"), "{{country}}", "country");
+            assert_lex_match(brackets("{{", "}}"), r"{{cou\ntry}}", r"cou\ntry");
 
-            assert_lex_fails(brackets(), r"$(country\)", "missing closing bracket");
-            assert_lex_fails(brackets(), r"$\(country)", "missing opening bracket");
+            assert_lex_fails(
+                brackets("{{", "}}"),
+                r"{{country\}}",
+                "missing closing bracket",
+            );
+            assert_lex_fails(
+                brackets("{{", "}}"),
+                r"$\(country)",
+                "missing opening bracket",
+            );
         }
 
         #[test]
@@ -358,7 +378,7 @@ mod parsing {
             assert_parse_match(explicit_index(), r"@\$foo", "$foo".into());
             assert_parse_match(explicit_index(), r"@\@foo", "@foo".into());
             assert_parse_match(explicit_index(), r"@\$foo\.bar", "$foo.bar".into());
-            assert_parse_match(explicit_index(), r"@foo\(bar\)", "foo(bar)".into());
+            assert_parse_match(explicit_index(), r"@foo\{bar\}", "foo{bar}".into());
         }
 
         #[test]
@@ -379,9 +399,9 @@ mod parsing {
         #[test]
         fn test_expand_direct() {
             assert_parse_match(expand(), "field", Expand::new("field"));
-            assert_parse_match(expand(), r"\$\(field\)", Expand::new("$(field)"));
+            assert_parse_match(expand(), r"\{field\}", Expand::new("{field}"));
 
-            assert_parse_fails(expand(), "$(field)", "$ is a special char, needs escaping");
+            assert_parse_fails(expand(), "{{field}}", "{} are special chars, need escaping");
         }
 
         #[test]
@@ -429,15 +449,15 @@ mod parsing {
 
         #[test]
         fn test_expr() {
-            assert_parse_match(expr, "$(country)", Expr::Expand(Expand::new("country")));
+            assert_parse_match(expr, "{{country}}", Expr::Expand(Expand::new("country")));
             assert_parse_match(
                 expr,
-                "$(country.code)",
+                "{{country.code}}",
                 Expr::Expand(Expand::with_lookup("code", Lookup::direct("country"))),
             );
             assert_parse_match(
                 expr,
-                "$(country@Enemy Country.code)",
+                "{{country@Enemy Country.code}}",
                 Expr::Expand(Expand::with_lookup(
                     "code",
                     Lookup::indirect("country", "Enemy Country"),
@@ -445,7 +465,7 @@ mod parsing {
             );
             assert_parse_match(
                 expr,
-                "$(country.team.code)",
+                "{{country.team.code}}",
                 Expr::Expand(Expand::with_nested_lookups(
                     "code",
                     vec![Lookup::direct("country"), Lookup::direct("team")],
@@ -453,7 +473,7 @@ mod parsing {
             );
             assert_parse_match(
                 expr,
-                "$(country@Enemy Country.team.code)",
+                "{{country@Enemy Country.team.code}}",
                 Expr::Expand(Expand::with_nested_lookups(
                     "code",
                     vec![
@@ -466,7 +486,7 @@ mod parsing {
             // seems like it ought to fail - but whitespace is valid and significant!
             assert_parse_match(
                 expr,
-                "$(awueif q34t@23r .r)",
+                "{{awueif q34t@23r .r}}",
                 Expr::Expand(Expand::with_lookup(
                     "r",
                     Lookup::indirect("awueif q34t", "23r "),

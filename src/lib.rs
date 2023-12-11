@@ -48,7 +48,7 @@ pub fn pop_one(
     record: &Record,
     defs: &HashMap<String, Table>,
 ) -> Result<String, anyhow::Error> {
-    let re = Regex::new(r#"(?P<expr>\$\([^\)]+\))"#).unwrap();
+    let re = Regex::new(r#"(?P<expr>\{\{[^}]+\}\})"#).unwrap();
 
     // replace all expr with their value in the definition
     let output = replace_all(
