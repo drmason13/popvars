@@ -261,7 +261,7 @@ checksum = "dd8b5dd2ae5ed71462c540258bedcb51965123ad7e7ccf4b9a8cafaa4a63576d"
 [[package]]
 name = "parsely"
 version = "0.1.0"
-source = "git+https://github.com/drmason13/parsely?branch=implicit-str-char-lexing#e984f7b35f5c35bbba9ec5fbc8aa7065d0bdf151"
+source = "git+https://github.com/drmason13/parsely?branch=develop#3cc7194ea8f5a36147d767ba4be4a1f960488888"
 
 [[package]]
 name = "pin-project-lite"
