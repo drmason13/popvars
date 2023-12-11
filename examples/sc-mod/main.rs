@@ -14,7 +14,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let input = std::fs::read_to_string("national morale.txt")?;
 
-    let popped = popvars::pop(&input, definitions);
+    let popped = popvars::pop(&input, definitions)?;
 
     println!("{}", popped.join("\n"));
 

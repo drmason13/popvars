@@ -1,4 +1,4 @@
-id,coords
+$id,coords
 Konigsberg,"187,68"
 Breslau,"180,79"
 Hamburg,"162,72"
@@ -14,7 +14,7 @@ Marseille,"157,97"
 Gibraltar,"136,114"
 Malta,"175,114"
 Belfast,"135,68"
-London ,"147,77"
+London,"147,77"
 Manchester,"142,72"
 Edinburgh,"140,65"
 Trieste,"174,92"

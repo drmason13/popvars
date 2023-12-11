@@ -1,7 +1,7 @@
 ; $(Major Minor) NM Hex Lost
 {
 #NAME= $(city) $(Major Minor) NM Hex, Enemy Boost
-#POPUP= $(country.enemy) celebrate as $(city) falls
+#POPUP= $(country@Enemy Country.team) celebrate as $(city) falls
 #IMAGE= 
 #SOUND=
 #FLAG= 1 
@@ -12,7 +12,7 @@
 #GV= 1[1,100] 
 ;; Set link value to always trigger (dummy value) 
 #LINK= 0[0] 
-#COUNTRY_ID=$(country.code)
+#COUNTRY_ID=$(country@Enemy Country.code)
 #TRIGGER= 100 
 ; Set how many NM points should be gained or lost over X turns 
 #NM_UPDOWN= $(Morale Points)
@@ -24,14 +24,14 @@
 ; Set variable conditions: 
 ; 1st Line - $(country) a member of the $(country.team), fully mobilised, and not surrendered 
 #VARIABLE_CONDITION= $(country.code) [$(country.team.code)] [100] [0]
-; 2nd Line - $(Enemy country) a member of the $(country@Enemy Country.team), fully mobilised, and not surrendered
-#VARIABLE_CONDITION= 116 [1] [100] [0]
+; 2nd Line - $(Enemy Country) a member of the $(country@Enemy Country.team), fully mobilised, and not surrendered
+#VARIABLE_CONDITION= $(country@Enemy Country.code) [country@Enemy Country.team.code] [100] [0]
 ;; Dummy condition position (always satisfied)
 #CONDITION_POSITION= 0,0 [0,0] [0,0] [0] [0]
 }
 {
 #NAME= $(city) $(Major Minor) NM Hex, Main Hit
-#POPUP= $(country.possesive) morale hit hard as $(city) falls
+#POPUP= $(country.possessive) morale hit hard as $(city) falls
 #IMAGE= 
 #SOUND=
 #FLAG= 1 
@@ -56,137 +56,6 @@
 #VARIABLE_CONDITION= $(country.code) [2] [100] [0]
 ; 2nd Line - USSR a member of the Axis, fully mobilised, and not surrendered
 #VARIABLE_CONDITION= 116 [1] [100] [0]
-; Dummy condition position (always satisfied)
-#CONDITION_POSITION= 0,0 [0,0] [0,0] [0] [0]
-}
-; Major NM Hex Lost, Collateral Hit
-{
-#NAME= Berlin Major NM Hex, Collateral 1/4
-#POPUP= British morale hit as Berlin falls
-#IMAGE= 
-#SOUND=
-#FLAG= 1 
-#TYPE= 1 
-#AI= 0 
-#LEVEL= 0 
-; Set global variable condition to always trigger (dummy value) 
-#GV= 1[1,100] 
-; Set link value to always trigger (dummy value) 
-#LINK= 0[0] 
-#COUNTRY_ID= 112
-#TRIGGER= 100 
-; Set how many NM points should be gained or lost over X turns 
-#NM_UPDOWN= -1000
-#NM_TURNS= 1
-#DATE= 1950/05/01
-#OBJECTIVE_TEXT_POSITION= 173,74
-; Objective is in Axis hands
-#ALIGNMENT_POSITION= 173,74 [1]
-; Set variable conditions: 
-; 1st Line - Germany a member of the Allies, fully mobilised, and not surrendered 
-#VARIABLE_CONDITION= 45 [2] [100] [0]
-; 2nd Line - USSR a member of the Axis, fully mobilised, and not surrendered
-#VARIABLE_CONDITION= 116 [1] [100] [0]
-; 3rd Line - UK at least leans Allied, 50%+ mobilisation, and not surrendered
-#VARIABLE_CONDITION= 112 [2] [50] [0]
-; Dummy condition position (always satisfied)
-#CONDITION_POSITION= 0,0 [0,0] [0,0] [0] [0]
-}
-; Major NM Hex Lost, Collateral Hit
-{
-#NAME= $(City Name) $(Major ? "Major" : "Minor") NM Hex, Collateral 2/4
-#POPUP= French morale hit as $(City Name) falls
-#IMAGE= 
-#SOUND=
-#FLAG= 1 
-#TYPE= 1 
-#AI= 0 
-#LEVEL= 0 
-; Set global variable condition to always trigger (dummy value) 
-#GV= 1[1,100] 
-; Set link value to always trigger (dummy value) 
-#LINK= 0[0] 
-#COUNTRY_ID= 40
-#TRIGGER= 100 
-; Set how many NM points should be gained or lost over X turns 
-#NM_UPDOWN= -1000
-#NM_TURNS= 1
-#DATE= 1950/05/01
-#OBJECTIVE_TEXT_POSITION= 173,74
-; Objective is in Axis hands
-#ALIGNMENT_POSITION= 173,74 [1]
-; Set variable conditions: 
-; 1st Line - Germany a member of the Allies, fully mobilised, and not surrendered 
-#VARIABLE_CONDITION= 45 [2] [100] [0]
-; 2nd Line - USSR a member of the Axis, fully mobilised, and not surrendered
-#VARIABLE_CONDITION= 116 [1] [100] [0]
-; 3rd Line - France at least leans Allied, 50%+ mobilisation, and not surrendered
-#VARIABLE_CONDITION= 40 [2] [50] [0]
-; Dummy condition position (always satisfied)
-#CONDITION_POSITION= 0,0 [0,0] [0,0] [0] [0]
-}
-{
-#NAME= Berlin Major NM Hex, Collateral 3/4
-#POPUP= Italian morale hit as $(City Name) falls
-#IMAGE= 
-#SOUND=
-#FLAG= 1 
-#TYPE= 1 
-#AI= 0 
-#LEVEL= 0 
-; Set global variable condition to always trigger (dummy value) 
-#GV= 1[1,100] 
-; Set link value to always trigger (dummy value) 
-#LINK= 0[0] 
-#COUNTRY_ID= 59
-#TRIGGER= 100 
-; Set how many NM points should be gained or lost over X turns 
-#NM_UPDOWN= -1000
-#NM_TURNS= 1
-#DATE= 1950/05/01
-#OBJECTIVE_TEXT_POSITION= 173,74
-; Objective is in Axis hands
-#ALIGNMENT_POSITION= 173,74 [1]
-; Set variable conditions: 
-; 1st Line - Germany a member of the Allies, fully mobilised, and not surrendered 
-#VARIABLE_CONDITION= 45 [2] [100] [0]
-; 2nd Line - USSR a member of the Axis, fully mobilised, and not surrendered
-#VARIABLE_CONDITION= 116 [1] [100] [0]
-; 3rd Line - UK at least leans Allied, 50%+ mobilisation, and not surrendered
-#VARIABLE_CONDITION= 59 [2] [50] [0]
-; Dummy condition position (always satisfied)
-#CONDITION_POSITION= 0,0 [0,0] [0,0] [0] [0]
-}
-; Major NM Hex Lost, Collateral Hit
-{
-#NAME= Berlin Major NM Hex, Collateral 4/4
-#POPUP= American morale hit as Berlin falls
-#IMAGE= 
-#SOUND=
-#FLAG= 1 
-#TYPE= 1 
-#AI= 0 
-#LEVEL= 0 
-; Set global variable condition to always trigger (dummy value) 
-#GV= 1[1,100] 
-; Set link value to always trigger (dummy value) 
-#LINK= 0[0] 
-#COUNTRY_ID= 115
-#TRIGGER= 100 
-; Set how many NM points should be gained or lost over X turns 
-#NM_UPDOWN= -1000
-#NM_TURNS= 1
-#DATE= 1950/05/01
-#OBJECTIVE_TEXT_POSITION= 173,74
-; Objective is in Axis hands
-#ALIGNMENT_POSITION= 173,74 [1]
-; Set variable conditions: 
-; 1st Line - Germany a member of the Allies, fully mobilised, and not surrendered 
-#VARIABLE_CONDITION= 45 [2] [100] [0]
-; 2nd Line - USSR a member of the Axis, fully mobilised, and not surrendered
-#VARIABLE_CONDITION= 116 [1] [100] [0]
-; 3rd Line - America at least leans Allied, 50%+ mobilisation, and not surrendered
-#VARIABLE_CONDITION= 115 [2] [50] [0]
 ; Dummy condition position (always satisfied)
 #CONDITION_POSITION= 0,0 [0,0] [0,0] [0] [0]
 }

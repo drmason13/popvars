@@ -1,10 +1,17 @@
-use std::str::FromStr;
+use std::{collections::HashMap, str::FromStr};
 
-use crate::Record;
+use crate::{Record, Table};
 
 #[derive(Debug, PartialEq)]
 pub enum Expr {
     Expand(Expand),
+}
+impl Expr {
+    pub fn run(self, context: &Context, defs: &HashMap<String, Table>) -> anyhow::Result<String> {
+        match self {
+            Expr::Expand(expand) => expand.run(context, defs),
+        }
+    }
 }
 
 /// Context and Record are interchangable, they are both the exact same type.
@@ -59,10 +66,10 @@ pub struct Lookup {
     ///
     /// if `index` is None, `table_name` is used to index the current [`Context`].
     /// ```bash
-    /// # indexes the current Context with "country", then uses that value to index the table "country"
+    /// # indexes the current Context with "country", then uses that value to index the table "team"
     /// $(country.team)
     ///
-    /// # indexes the current Context with "Enemy Country", then uses that value to index the table "country"
+    /// # indexes the current Context with "Enemy Country", then uses that value to index the table "team"
     /// $(country@Enemy Country.team)
     /// ```
     ///
@@ -84,11 +91,34 @@ impl Lookup {
             index: None,
         }
     }
+
     pub fn indirect(table: &str, index: &str) -> Self {
         Lookup {
             table_name: table.into(),
             index: Some(index.into()),
         }
+    }
+
+    pub fn run<'c>(
+        &self,
+        context: &'c Context,
+        defs: &'c HashMap<String, Table>,
+    ) -> anyhow::Result<&'c Context> {
+        let index = self.index.as_ref().unwrap_or(&self.table_name);
+        let key = context.get(index).ok_or_else(|| {
+            anyhow!("Failed lookup: field `{index}` did not exist in context `{context:?}`")
+        })?;
+        let table = defs
+            .get(&self.table_name)
+            .ok_or_else(|| anyhow!("Failed lookup: no def named `{}`", &self.table_name))?;
+        let context = table.index(key)?.ok_or_else(|| {
+            anyhow!(
+                "Failed lookup: expected to find a {} with $id={}",
+                &self.table_name,
+                &key
+            )
+        })?;
+        Ok(context)
     }
 }
 
@@ -154,6 +184,23 @@ impl Expand {
             path,
         }
     }
+
+    pub fn run(self, context: &Context, defs: &HashMap<String, Table>) -> anyhow::Result<String> {
+        let mut current_context: &Context = context;
+
+        for lookup in self.path {
+            current_context = lookup.run(current_context, defs)?;
+        }
+
+        let value = current_context.get(&self.field).ok_or_else(|| {
+            anyhow!(
+                "Failed expansion: context is missing field `{}`",
+                &self.field,
+            )
+        })?;
+
+        Ok(value.clone())
+    }
 }
 
 impl FromStr for Expr {
@@ -167,6 +214,7 @@ impl FromStr for Expr {
     }
 }
 
+use anyhow::anyhow;
 use parsing::expr;
 
 mod parsing {

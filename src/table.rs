@@ -7,7 +7,7 @@ use csv::StringRecord;
 #[derive(Debug)]
 pub struct Table {
     name: String,
-    records: Vec<Record>,
+    pub records: Vec<Record>,
 }
 
 /// Fields are just Strings. They are appear in a table header.
@@ -55,7 +55,7 @@ impl Table {
         Table { name, records }
     }
 
-    pub fn index(&self, index: &str) -> anyhow::Result<Option<&Record>> {
+    pub fn index<'c>(&'c self, index: &'c str) -> anyhow::Result<Option<&'c Record>> {
         if self.records.is_empty() {
             return Ok(None);
         }
