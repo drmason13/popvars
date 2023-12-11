@@ -10,8 +10,22 @@ pub struct Table {
     records: Vec<Record>,
 }
 
-/// A Variables is a map of field: value, which are all Stringly typed
-pub type Record = HashMap<String, String>;
+/// Fields are just Strings. They are appear in a table header.
+/// Fields are used to name and refer to the values in a [Record]
+pub type Field = String;
+
+/// Values are just Strings. They are appear in a table rows, outside of the header.
+/// Values appear in a template after it has been populated.
+pub type Value = String;
+
+/// A Record is a map of [field]: [value], both of which are actually just `String`.
+///
+/// Records are rows in a [table]. Each key in the hashmap is a field in the Record.
+///
+/// [table]: Table
+/// [field]: Field
+/// [value]: Value
+pub type Record = HashMap<Field, Value>;
 
 pub fn from_csv<R: io::Read>(name: String, reader: R) -> anyhow::Result<Table> {
     let mut vars_csv = csv::Reader::from_reader(reader);

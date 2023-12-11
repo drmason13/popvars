@@ -5,10 +5,10 @@ mod expr;
 mod table;
 
 pub use definition::Definition;
-// pub use expr::Expr;
+pub use expr::{Context, Expand, Expr, Lookup};
 pub use table::{Record, Table};
 
-use regex::{Captures, Regex};
+use regex::Regex;
 
 use std::collections::HashMap;
 
@@ -25,8 +25,10 @@ pub fn pop(input: &str, def: Definition) -> Vec<String> {
     output
 }
 
-pub fn pop_one(input: &str, var: &Record, types: &HashMap<String, Table>) -> String {
+pub fn pop_one(input: &str, context: &Context, defs: &HashMap<String, Table>) -> String {
     let re = Regex::new(r#"\$\((?P<expr>[^\)]+?)\)"#).unwrap();
+
+    let _ = (re, input, context, defs);
 
     // // replace all expr with their value in the definition
     // re.replace_all(input, |captures: &Captures| {

@@ -11,10 +11,16 @@ use crate::table::{self, Table};
 
 #[derive(Debug)]
 pub struct Definition {
-    /// This table is used to populate the template
+    /// This [table] is used to populate the template
+    ///
+    /// [table]: Table
     pub vars: Table,
 
-    /// defs are Tables keyed by name that can be used to resolve lookups
+    /// defs are [table]s keyed by name that can be used to resolve [lookups] during an [expansion]
+    ///
+    /// [table]: Table
+    /// [lookups]: crate::expr::Lookup
+    /// [expansion]: crate::expr::Expand
     pub defs: HashMap<String, Table>,
 }
 

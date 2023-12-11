@@ -11,7 +11,8 @@
 // //     var_value = variable.get(typ);
 // //     typ_value = typ.find(|var| var.get("$id") == var_value);
 // //     typ_value.get(field)
-// // } -> find the typ, find the variable in typ that matches the variable's value of the field that has the same name as the typ
+// // } -> find the typ, find the variable in typ that matches the
+// // variable's value of the field that has the same name as the typ
 
 // pub enum Expr {
 //     Direct(String),
@@ -86,3 +87,8 @@
 
 // a key refers to a value that is _presumed_ to appear once in a table in the "$id" field, it is used to index a unique record from that table
 // a field is a String used to index a Record
+
+
+// overall parser progress
+// $(country@Enemy Country.team.code)
+// country@Enemy Country.team.code
