@@ -49,9 +49,9 @@ Now we have a lot of people who have jobs, let's define a job `type` and associa
 
 `$id` is a special field that popvars understands. `$id` is what we use to refer to a job, so it must be different for every job we want to use.
 
-`types` aren't available to be interpolated directly, they have to be accessed via `$vars`. For example we can't just put `$(sector)` in our template, we have to get to it through `job`:
+`types` aren't available to be interpolated directly, they have to be accessed via `$vars`. For example we can't just put `{{sector}}` in our template, we have to get to it through `job`:
 
-`$(name) works in $(job.sector)`
+`{{name}} works in {{job.sector}}`
 
 becomes
 
@@ -108,7 +108,7 @@ To populate a template with variables using these definitions, we need a templat
 <`demo.txt` template file>
 
 ```
-$(country) with code $(country.code) contains $(city).
+{{country}} with code {{country.code}} contains {{city}}.
 ```
 
 The above template populated with the above definitions will make the following output:
@@ -127,8 +127,6 @@ You might have noticed that there's no Italy in the output. Not every defined ty
 
 `$outfile` is another special field like `$id` used to tell popvars where to put the output. Each row is populated and then added to the `$outfile`, in order. This lets you output to multiple different files at once!
 
-Another way to specify multiple different output files at once is to make a template that, once populated with variables, is used to define the path to a file to write to. This is done using the `TBD` arg.
-
 <`$vars` sheet>
 
 ```
@@ -145,7 +143,7 @@ To populate a template with variables using these definitions, we need a templat
 <`demo.txt` template file>
 
 ```
-$(country) with code $(country.code) contains $(city).
+{{country}} with code {{country.code}} contains {{city}}.
 ```
 
 The above template populated with the above definitions will make the following output:
@@ -180,6 +178,68 @@ USA with code 115 contains Boston.
 Soviet Union with code 116 contains Smolensk.
 ```
 
-Note: You might want to have a field that has a `.` in its name. In order to refer to that field, and not get an error about accessing a non-existent type, you will have to "escape" the `.` by prefixing it with a `\`, e.g. `$(fav\. color)` accesses a value named `fav. color`.
+Note: You might want to have a field that has a `.` in its name. In order to refer to that field, and not get an error about accessing a non-existent type, you will have to "escape" the `.` by prefixing it with a `\`, e.g. `{{fav\. color}}` accesses a value named `fav. color`.
 
 You may store additional type definitions in separate files so they can be easily shared between different templates. Load each file containing templates in using the `-t, --template` arg. e.g. `popvars -d "national morale.ods" -t "red alert types.ods" -t "geography.ods"`
+
+# Advanced usage
+
+## Looping
+
+you can repeat parts of a template.
+
+This is done using a block expression `{@ ... @}` with the following syntax:
+
+```
+{@ for allied_country in country where team="Allies" @}<template to loop>{@ end for @}
+```
+
+Loops through each record in country that satisfies the "where clause", which refers to the field `team` with the context of each country record.
+
+### Context while Looping
+
+Within the example loop, `allied_country` refers to the current Record in the country Table being templated inside the loop.
+
+Previous contexts remain available, including previous loops!
+
+Note: Loops that define a new context with the same name as an existing context **override** that context within the loop.
+
+## Includes
+
+To manage the complexity of authoring templates, popvars supports reusing templates inside other templates.
+
+This is done using a block expression `{@ ... @}` with the following syntax:
+
+```
+{@ pop template_path @}
+```
+
+where `template_path` is the path to your template file relative to where you are running popvars.
+
+e.g.
+
+```
+{@ pop macros/header.txt @}
+```
+
+Optionally, new fields may be added to the context for only that template:
+
+```
+{@ pop template_path with field as new_field @}
+```
+
+where `field` is a field in the current context whose value you want to use and `new_field` is the new field to provide within the current context while populating the template.
+
+This allows you to effectively rename fields to match those in a re-usable template.
+
+You can also provide new values directly in the block expression by placing them within double quotes:
+
+```
+{@ pop template_path with "value" as new_field @}
+```
+
+Escape double quote and backslash using backslash:
+
+```
+{@ pop template_path with "value containing \"double quotes\" and backslashes \\ too for good measure" as new_field @}
+```
