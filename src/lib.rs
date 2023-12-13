@@ -74,6 +74,3 @@ pub fn pop_one(
 
     Ok(output.to_string())
 }
-
-#[cfg(test)]
-pub(crate) mod test_utils;

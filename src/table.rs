@@ -6,7 +6,7 @@ use csv::StringRecord;
 
 #[derive(Debug)]
 pub struct Table {
-    name: String,
+    pub name: String,
     pub records: Vec<Record>,
 }
 
@@ -45,7 +45,7 @@ pub fn from_csv<R: io::Read>(name: String, reader: R) -> anyhow::Result<Table> {
     let records = vars_csv
         .records()
         .map(map_record)
-        .collect::<Result<Vec<Record>, _>>()?;
+        .collect::<Result<Vec<_>, _>>()?;
 
     Ok(Table::new(name, records))
 }
@@ -81,7 +81,27 @@ impl Table {
 
 #[cfg(test)]
 mod tests {
-    use crate::test_utils::build_test_table;
+    pub use super::*;
+
+    use std::collections::HashMap;
+
+    pub fn build_test_table(name: &str, fields: &[&str], len: usize) -> Table {
+        let mut records = Vec::new();
+
+        let record = |idx| {
+            let mut map = HashMap::<String, String>::new();
+            for field in fields {
+                map.insert(field.to_string(), format!("{field} #{idx}"));
+            }
+            map
+        };
+
+        for idx in 0..len {
+            records.push(record(idx));
+        }
+
+        Table::new(name.to_string(), records)
+    }
 
     #[test]
     fn test_table_index() -> anyhow::Result<()> {

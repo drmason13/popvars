@@ -1,15 +1,23 @@
-use std::{collections::HashMap, str::FromStr};
+use std::{
+    borrow::{Borrow, Cow},
+    collections::HashMap,
+    str::FromStr,
+};
 
 use crate::{Record, Table};
 
 #[derive(Debug, PartialEq)]
 pub enum Expr {
     Expand(Expand),
+    Block(Block),
 }
+
 impl Expr {
     pub fn run(self, context: &Context, defs: &HashMap<String, Table>) -> anyhow::Result<String> {
         match self {
             Expr::Expand(expand) => expand.run(context, defs),
+            // Expr::ForIn(for_in) => for_in.run(context, defs),
+            _ => unimplemented!("Block Expressions not ready yet"),
         }
     }
 }
@@ -209,13 +217,159 @@ impl FromStr for Expr {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         use parsely::*;
 
-        let (expr, _) = expr.then_skip(end()).parse(s)?;
+        let (expr, _) = expr.then_skip(end()).parse(s).own_err()?;
         Ok(expr)
     }
 }
 
-use anyhow::anyhow;
-use parsing::expr;
+#[derive(Debug, Clone, PartialEq)]
+pub struct WhereClause {
+    field: String,
+    comparator: Comparator,
+    value: Value,
+}
+
+impl WhereClause {
+    pub fn new(field: &str, comparator: Comparator, value: Value) -> Self {
+        WhereClause {
+            field: field.to_owned(),
+            comparator,
+            value,
+        }
+    }
+
+    pub fn matches(&self, record: &Record, table_name: &str) -> anyhow::Result<bool> {
+        let value = record.get(&self.field).ok_or_else(|| {
+            anyhow!(
+                "Failed expansion: context is missing field `{}`",
+                &self.field,
+            )
+        })?;
+
+        let matches = match &self.value {
+            Value::Int(where_value) => self.comparator.compare(
+                where_value,
+                &value.parse::<i64>().context(format!(
+                    "Expected `{}` field in `{}` table to be a signed integer",
+                    self.field, table_name
+                ))?,
+            ),
+            Value::Uint(where_value) => self.comparator.compare(
+                where_value,
+                &value.parse::<u64>().context(format!(
+                    "Expected `{}` field in `{}` table to be a unsigned integer",
+                    self.field, table_name
+                ))?,
+            ),
+            Value::Float(where_value) => self.comparator.compare(
+                where_value,
+                &value.parse::<f64>().context(format!(
+                    "Expected `{}` field in `{}` table to be a float",
+                    self.field, table_name
+                ))?,
+            ),
+            Value::Text(where_value) => self.comparator.compare(where_value, value),
+        };
+
+        Ok(matches)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum Value {
+    Int(i64),
+    Uint(u64),
+    Float(f64),
+    Text(String),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Comparator {
+    Equal,
+    NotEqual,
+    GreaterThan,
+    LessThan,
+    GreaterThanOrEqual,
+    LessThanOrEqual,
+}
+
+impl Comparator {
+    pub fn compare<T: PartialEq + PartialOrd>(&self, a: T, b: T) -> bool {
+        match self {
+            Comparator::Equal => a == b,
+            Comparator::NotEqual => a != b,
+            Comparator::GreaterThan => a > b,
+            Comparator::LessThan => a < b,
+            Comparator::GreaterThanOrEqual => a >= b,
+            Comparator::LessThanOrEqual => a <= b,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Block {
+    pub tag: BlockTag,
+    pub content: String,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum BlockTag {
+    ForIn(ForIn),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ForIn {
+    new_context_name: String,
+    table_name: String,
+    where_clause: Option<WhereClause>,
+}
+
+impl ForIn {
+    pub fn run<'d>(
+        self,
+        _context: &Context,
+        defs: &'d HashMap<String, Table>,
+    ) -> anyhow::Result<Table> {
+        let new_context = defs.get(&self.new_context_name).ok_or_else(|| {
+            anyhow!(
+                "Failed expansion: defs is missing table `{}`",
+                &self.new_context_name,
+            )
+        })?;
+
+        let new_context = new_context
+            .iter()
+            .map(|record| {
+                if let Some(wc) = &self.where_clause {
+                    Ok((record, wc.matches(record, self.table_name.as_str())?))
+                } else {
+                    Ok((record, true))
+                }
+            })
+            .filter(|result| match result {
+                Ok((_, keep)) => *keep,
+                Err(_) => true,
+            })
+            .map(|result| result.map(|(record, _)| Cow::Borrowed(record.borrow())))
+            .collect::<anyhow::Result<Vec<_>>>()?;
+
+        // Ok(Table::new(self.new_context_name, new_context))
+        todo!()
+    }
+}
+
+impl FromStr for ForIn {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let (for_in, _) = for_in().parse(s).own_err()?;
+        Ok(for_in)
+    }
+}
+
+use anyhow::{anyhow, Context as _};
+use parsely::{result_ext::*, Parse};
+use parsing::{expr, for_in};
 
 mod parsing {
     use parsely::*;
@@ -223,13 +377,106 @@ mod parsing {
     use super::*;
 
     pub fn expr(input: &str) -> ParseResult<Expr> {
-        let (inner, remaining) = brackets("{{", "}}").lex(input)?;
+        let error = match outer_brackets("{{", "}}").lex(input).offset(input) {
+            Ok((inner, remaining)) => match expand().parse(inner).offset(input) {
+                Ok((expand, _)) => {
+                    let expr = Expr::Expand(expand);
+                    return Ok((expr, remaining));
+                }
+                Err(e) => e,
+            },
+            Err(e) => e,
+        };
 
-        let (expand, _) = expand().parse(inner)?;
+        let (block_expr, remaining) = block_expr.parse(input).offset(input).merge(error)?;
 
-        let expr = Expr::Expand(expand);
+        Ok((block_expr, remaining))
+    }
 
-        Ok((expr, remaining))
+    // {@ ___ ... @}  <content>  {@ end ___ @}
+    //    ^^^  these must be the same   ^^^
+    pub fn block_expr(input: &str) -> ParseResult<Expr> {
+        let (opening_tag, remaining) = outer_brackets("{@", "@}").lex(input).offset(input)?;
+
+        let closing_tag = if "for".pad().lex(opening_tag).is_ok() {
+            // we'll use this to lex the closing tag - it has to match the opening tag
+            "for"
+        } else {
+            // unrecognised block expression... one day I'll be add a label like this to the error
+            return Err(parsely::Error::no_match(input));
+        };
+
+        match closing_tag {
+            "for" => {
+                let (tag, _) = for_in().parse(opening_tag).offset(input).offset(input)?;
+                let (block, remaining) = until("{@ end for").lex(remaining).offset(input)?;
+                todo!()
+                // How do we parse nested {@ for ... @} ... {@ end for @}
+                // **inside** a {@ for ... @} ... {@ end for @} ??
+                // oh we just find either the close {@ end for @} OR another opening tag, in which case we
+                // will have to include it in this block as a part of the String.
+                // increment a depth counter, keep going until we get back to 0 +1 for each open, -1 for each close
+                // we'll either get back to - or fail to match input at which point we just bail!
+
+                // we already need a way to push new Contexts somewhere we can use them to expand expressions
+
+                // this is all complicated enough to warrant a new function/parser/combinator :)
+            }
+            _ => unreachable!("unexpected tag name in block expression - this is a bug!"),
+        }
+    }
+
+    // for `allied_country` in `country` where team="Allies"
+    pub fn for_in() -> impl Parse<Output = ForIn> {
+        "for"
+            .pad()
+            .skip_then("`".skip_then(segment("`")))
+            .then_skip("in".pad())
+            .then("`".skip_then(segment("`")))
+            .then(where_clause.pad().optional())
+            .map(|((ctx, table), where_clause)| ForIn {
+                new_context_name: ctx,
+                table_name: table,
+                where_clause,
+            })
+    }
+
+    fn value() -> impl Parse<Output = Value> {
+        let string = "\"".skip_then(segment("\""));
+
+        string
+            .map(Value::Text)
+            .or(uint::<u64>().map(Value::Uint))
+            .or(int::<i64>().map(Value::Int))
+            .or(float::<f64>().map(Value::Float))
+    }
+
+    // where team="Allies"
+    fn where_clause(input: &str) -> ParseResult<WhereClause> {
+        let cmp = switch([
+            ("!=", Comparator::NotEqual),
+            (">=", Comparator::GreaterThanOrEqual),
+            ("<=", Comparator::LessThanOrEqual),
+            (">", Comparator::GreaterThan),
+            ("<", Comparator::LessThan),
+            ("=", Comparator::Equal),
+        ]);
+
+        let (((field, comparator), value), remaining) = "where"
+            .pad()
+            .skip_then(segment("<!=>"))
+            .then(cmp)
+            .then(value())
+            .parse(input)
+            .offset(input)?;
+
+        let where_clause = WhereClause {
+            field,
+            comparator,
+            value,
+        };
+
+        Ok((where_clause, remaining))
     }
 
     fn expand() -> impl Parse<Output = Expand> {
@@ -254,8 +501,8 @@ mod parsing {
         '@'.skip_then(segment("@."))
     }
 
-    fn brackets(open: &'static str, close: &'static str) -> impl Lex {
-        segment_lexer("}").pad_with(open, close)
+    fn outer_brackets(open: &'static str, close: &'static str) -> impl Lex {
+        segment_lexer(close).pad_with(open, close)
     }
 
     fn segment_lexer(terminating_chars: &'static str) -> impl Lex {
@@ -312,9 +559,9 @@ mod parsing {
             input: &str,
             expected_match: O,
         ) {
-            let (matched, _) = parser
-                .parse(input)
-                .unwrap_or_else(|_| panic!("expected: {expected_match:?} for input: {input}"));
+            let (matched, _) = dbg!(parser.parse(input)).unwrap_or_else(|_| {
+                panic!("parser failed to match: {expected_match:?} for input: {input}")
+            });
             assert_eq!(matched, expected_match, "for input: {input}");
         }
 
@@ -327,17 +574,30 @@ mod parsing {
         }
 
         #[test]
-        fn test_brackets() {
-            assert_lex_match(brackets("{{", "}}"), "{{country}}", "country");
+        fn test_outer_brackets() {
+            assert_lex_match(outer_brackets("{{", "}}"), "{{country}}", "country");
 
             assert_lex_fails(
-                brackets("{{", "}}"),
+                outer_brackets("{{", "}}"),
                 "{{country}",
                 "missing closing bracket",
             );
             assert_lex_fails(
-                brackets("{{", "}}"),
+                outer_brackets("{{", "}}"),
                 "{country}}",
+                "missing opening bracket",
+            );
+
+            assert_lex_match(outer_brackets("{@", "@}"), "{@country@}", "country");
+
+            assert_lex_fails(
+                outer_brackets("{@", "@}"),
+                "{@country}",
+                "missing closing bracket",
+            );
+            assert_lex_fails(
+                outer_brackets("{@", "@}"),
+                "{country@}",
                 "missing opening bracket",
             );
         }
@@ -345,21 +605,21 @@ mod parsing {
         #[test]
         fn test_brackets_retain_escape_chars() {
             assert_lex_match(
-                brackets("{{", "}}"),
+                outer_brackets("{{", "}}"),
                 r"{{country@\{foo\}}}",
                 r"country@\{foo\}",
             );
-            assert_lex_match(brackets("{{", "}}"), "{{${{}}}}.)", "${{");
-            assert_lex_match(brackets("{{", "}}"), "{{country}}", "country");
-            assert_lex_match(brackets("{{", "}}"), r"{{cou\ntry}}", r"cou\ntry");
+            assert_lex_match(outer_brackets("{{", "}}"), "{{${{}}}}.)", "${{");
+            assert_lex_match(outer_brackets("{{", "}}"), "{{country}}", "country");
+            assert_lex_match(outer_brackets("{{", "}}"), r"{{cou\ntry}}", r"cou\ntry");
 
             assert_lex_fails(
-                brackets("{{", "}}"),
+                outer_brackets("{{", "}}"),
                 r"{{country\}}",
                 "missing closing bracket",
             );
             assert_lex_fails(
-                brackets("{{", "}}"),
+                outer_brackets("{{", "}}"),
                 r"$\(country)",
                 "missing opening bracket",
             );
@@ -491,6 +751,19 @@ mod parsing {
                     "r",
                     Lookup::indirect("awueif q34t", "23r "),
                 )),
+            );
+        }
+
+        #[test]
+        fn test_where_clause() {
+            assert_parse_match(
+                where_clause,
+                r#"where team<="Allies""#,
+                WhereClause::new(
+                    "team",
+                    Comparator::LessThanOrEqual,
+                    Value::Text("Allies".into()),
+                ),
             );
         }
     }

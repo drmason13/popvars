@@ -31,6 +31,27 @@ impl Definition {
     }
 
     /// vars is required, defs may be empty. Strings are expected to be in csv format.
+    pub fn from_csv_strings(
+        vars: String,
+        defs: std::slice::Iter<'_, (String, String)>,
+    ) -> anyhow::Result<Self> {
+        let vars = table::from_csv("vars".to_owned(), BufReader::new(vars.as_bytes()))?;
+
+        let defs = defs
+            .map(
+                |(name, csv)| match table::from_csv(name.into(), BufReader::new(csv.as_bytes())) {
+                    Ok(type_) => Ok((name.into(), type_)),
+                    Err(e) => Err(anyhow::anyhow!(e)),
+                },
+            )
+            .collect::<Result<HashMap<String, Table>, _>>()?;
+
+        let definition = Definition { vars, defs };
+
+        Ok(definition)
+    }
+
+    /// vars is required, defs may be empty. Strings are expected to be in csv format.
     pub fn from_csv_files(vars: &Path, defs: &[PathBuf]) -> anyhow::Result<Self> {
         let vars = File::open(vars)
             .path(vars)
