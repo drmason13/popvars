@@ -3,23 +3,25 @@
 mod definition;
 mod expr;
 mod table;
+mod template;
 
 use anyhow::Context as AnyhowContext;
 pub use definition::Definition;
 pub use expr::{Context, Expand, Expr, Lookup};
 pub use table::{Record, Table};
+pub use template::Template;
 
 use regex::{Captures, Regex};
 
-use std::collections::HashMap;
-
 pub fn pop(input: &str, def: Definition) -> anyhow::Result<Vec<String>> {
-    let Definition { vars, defs } = def;
-
     let mut output = Vec::new();
 
-    for variable in vars.iter() {
-        let popped = pop_one(input, variable, &defs)?;
+    let template = Template::compile(input)?;
+
+    for (n, var) in def.vars.iter().enumerate() {
+        let popped = pop_one(&template, var, &def).with_context(|| {
+            format!("Error while populating template with row {} of vars", n + 1)
+        })?;
         output.push(popped);
     }
 
@@ -44,33 +46,35 @@ fn replace_all<E>(
 }
 
 pub fn pop_one(
-    input: &str,
+    template: &Template,
     record: &Record,
-    defs: &HashMap<String, Table>,
+    def: &Definition,
 ) -> Result<String, anyhow::Error> {
-    let re = Regex::new(r#"(?P<expr>\{\{[^}]+\}\})"#).unwrap();
+    template.pop(record, def)
 
-    // replace all expr with their value in the definition
-    let output = replace_all(
-        &re,
-        input,
-        |captures: &Captures| -> anyhow::Result<String> {
-            let matched = captures.name("expr").unwrap();
-            let span = || {
-                let rng = matched.range();
-                format!("({}, {})", rng.start, rng.end)
-            };
+    // let re = Regex::new(r#"(?P<expr>\{\{[^}]+\}\})"#).unwrap();
+    //
+    // // replace all expr with their value in the definition
+    // let output = replace_all(
+    //     &re,
+    //     input,
+    //     |captures: &Captures| -> anyhow::Result<String> {
+    //         let matched = captures.name("expr").unwrap();
+    //         let span = || {
+    //             let rng = matched.range();
+    //             format!("({}, {})", rng.start, rng.end)
+    //         };
 
-            let expression = matched.as_str();
+    //         let expression = matched.as_str();
 
-            let expr = expression
-                .parse::<Expr>()
-                .with_context(|| format!("invalid expression: {expression} at {}", span()))?;
+    //         let expr = expression
+    //             .parse::<Expr>()
+    //             .with_context(|| format!("invalid expression: {expression} at {}", span()))?;
 
-            expr.run(record, defs)
-                .with_context(|| format!("unable to expand expression {expression} at {}", span()))
-        },
-    )?;
+    //         expr.run(record, def)
+    //             .with_context(|| format!("unable to expand expression {expression} at {}", span()))
+    //     },
+    // )?;
 
-    Ok(output.to_string())
+    // Ok(output.to_string())
 }

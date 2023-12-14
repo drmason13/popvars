@@ -4,22 +4,18 @@ use std::{
     str::FromStr,
 };
 
-use crate::{Record, Table};
+use crate::{template::AdditionalContext, Definition, Record, Table};
 
+/// Expr was originally both parsed and evaluated, but since the introduction of Block Expressions
+/// to support looping via `{@ for ctx in table @}` Expr is only seen during parsing.
+///
+/// It is compiled into a type of [`Node`](crate::template::Node) within a [`Template`](crate::Template).
+///
+/// Each Node now knows how to evaluate itself into a [`String`].
 #[derive(Debug, PartialEq)]
 pub enum Expr {
     Expand(Expand),
     Block(Block),
-}
-
-impl Expr {
-    pub fn run(self, context: &Context, defs: &HashMap<String, Table>) -> anyhow::Result<String> {
-        match self {
-            Expr::Expand(expand) => expand.run(context, defs),
-            // Expr::ForIn(for_in) => for_in.run(context, defs),
-            _ => unimplemented!("Block Expressions not ready yet"),
-        }
-    }
 }
 
 /// Context and Record are interchangable, they are both the exact same type.
@@ -110,15 +106,22 @@ impl Lookup {
     pub fn run<'c>(
         &self,
         context: &'c Context,
-        defs: &'c HashMap<String, Table>,
+        def: &'c Definition,
+        additional_context: &AdditionalContext,
     ) -> anyhow::Result<&'c Context> {
         let index = self.index.as_ref().unwrap_or(&self.table_name);
+
         let key = context.get(index).ok_or_else(|| {
             anyhow!("Failed lookup: field `{index}` did not exist in context `{context:?}`")
         })?;
-        let table = defs
-            .get(&self.table_name)
-            .ok_or_else(|| anyhow!("Failed lookup: no def named `{}`", &self.table_name))?;
+
+        let table = if let Some(ctx_idx) = additional_context.get(&self.table_name) {
+            def.index(ctx_idx).or_else(|| def.get(&self.table_name))
+        } else {
+            def.get(&self.table_name)
+        }
+        .ok_or_else(|| anyhow!("Failed lookup: no table named `{}`", &self.table_name))?;
+
         let context = table.index(key)?.ok_or_else(|| {
             anyhow!(
                 "Failed lookup: expected to find a {} with $id={}",
@@ -126,6 +129,7 @@ impl Lookup {
                 &key
             )
         })?;
+
         Ok(context)
     }
 }
@@ -193,11 +197,16 @@ impl Expand {
         }
     }
 
-    pub fn run(self, context: &Context, defs: &HashMap<String, Table>) -> anyhow::Result<String> {
-        let mut current_context: &Context = context;
+    pub fn run(
+        self,
+        record: &Record,
+        def: &Definition,
+        context: &AdditionalContext,
+    ) -> anyhow::Result<String> {
+        let mut current_context: &Record = record;
 
         for lookup in self.path {
-            current_context = lookup.run(current_context, defs)?;
+            current_context = lookup.run(current_context, def, context)?;
         }
 
         let value = current_context.get(&self.field).ok_or_else(|| {

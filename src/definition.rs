@@ -7,7 +7,10 @@ use std::{
 
 use erreport::path::ErrorPaths;
 
-use crate::table::{self, Table};
+use crate::{
+    table::{self, Table},
+    template::ContextIndex,
+};
 
 #[derive(Debug)]
 pub struct Definition {
@@ -22,6 +25,31 @@ pub struct Definition {
     /// [lookups]: crate::expr::Lookup
     /// [expansion]: crate::expr::Expand
     pub defs: HashMap<String, Table>,
+}
+
+impl<'a> Definition {
+    pub fn get(&'a self, index: &str) -> Option<&'a Table> {
+        match index {
+            "vars" => Some(&self.vars),
+            def => self.defs.get(def),
+        }
+    }
+
+    pub fn index(&'a self, index: &ContextIndex) -> Option<&'a Table> {
+        match index {
+            ContextIndex::Value(_) => None,
+            ContextIndex::ValueList(_) => None,
+            ContextIndex::Table(s) => match s.as_str() {
+                "vars" => Some(&self.vars),
+                def => self.defs.get(def),
+            },
+            ContextIndex::FilteredTable {
+                context_name,
+                table_name,
+                where_clause,
+            } => todo!("FilteredTable ContextIndex"),
+        }
+    }
 }
 
 impl Definition {
