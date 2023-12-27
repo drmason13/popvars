@@ -10,6 +10,7 @@ use erreport::path::ErrorPaths;
 use crate::{
     table::{self, Table},
     template::ContextIndex,
+    Record,
 };
 
 #[derive(Debug)]
@@ -35,18 +36,37 @@ impl<'a> Definition {
         }
     }
 
-    pub fn index(&'a self, index: &ContextIndex) -> Option<&'a Table> {
+    pub fn index(
+        &'a self,
+        index: &'a ContextIndex,
+    ) -> Option<Box<dyn Iterator<Item = &'a Record> + 'a>> {
         match index {
-            ContextIndex::Value(_) => None,
             ContextIndex::ValueList(_) => None,
             ContextIndex::Table { table_name } => match table_name.as_str() {
-                "vars" => Some(&self.vars),
-                def => self.defs.get(def),
+                "vars" => Some(Box::new(self.vars.iter())),
+                def => match self.defs.get(def) {
+                    Some(t) => Some(Box::new(t.iter())),
+                    None => None,
+                },
             },
             ContextIndex::FilteredTable {
-                table_name: _,
-                where_clause: _,
-            } => todo!("FilteredTable ContextIndex"),
+                table_name,
+                where_clause,
+            } => match table_name.as_str() {
+                "vars" => Some(Box::new(self.vars.iter().filter(move |r| {
+                    where_clause
+                        .matches(r, table_name.as_str())
+                        .unwrap_or_else(|_| panic!("Invalid match when evaluating where clause {where_clause:?} for record r {r:?}"))
+                }))),
+                def => match self.defs.get(def) {
+                    Some(t) => Some(Box::new(t.iter().filter(move |r| {
+                        where_clause
+                            .matches(r, table_name.as_str())
+                            .unwrap_or_else(|_| panic!("Invalid match when evaluating where clause {where_clause:?} for record r {r:?}"))
+                    }))),
+                    None => None
+                },
+            },
         }
     }
 }

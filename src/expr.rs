@@ -7,7 +7,7 @@ pub use parsing::template;
 use parsing::{expr, for_in};
 
 use crate::{
-    template::{AdditionalContext, ContextIndex},
+    template::{ContextIndex, InheritedContext},
     Definition, Record,
 };
 
@@ -128,24 +128,28 @@ impl Lookup {
         }
     }
 
-    pub fn run<'c>(
+    pub fn run<'c, 'b>(
         &self,
         context: &'c Context,
         def: &'c Definition,
-        additional_context: &AdditionalContext,
-    ) -> anyhow::Result<&'c Context> {
+        block_contexts: &'b InheritedContext,
+    ) -> anyhow::Result<&'c Context>
+    where
+        'b: 'c,
+    {
         let index = self.index.as_ref().unwrap_or(&self.table_name);
+
+        if let Some(block_ctx) = block_contexts.get(index) {
+            return Ok(block_ctx);
+        }
 
         let key = context.get(index).ok_or_else(|| {
             anyhow!("Failed lookup: field `{index}` did not exist in context `{context:?}`")
         })?;
 
-        let table = if let Some(ctx_idx) = additional_context.get(&self.table_name) {
-            def.index(ctx_idx).or_else(|| def.get(&self.table_name))
-        } else {
-            def.get(&self.table_name)
-        }
-        .ok_or_else(|| anyhow!("Failed lookup: no table named `{}`", &self.table_name))?;
+        let table = def
+            .get(&self.table_name)
+            .ok_or_else(|| anyhow!("Failed lookup: no table named `{}`", &self.table_name))?;
 
         let context = table.index(key)?.ok_or_else(|| {
             anyhow!(
@@ -226,7 +230,7 @@ impl Expand {
         &self,
         record: &Record,
         def: &Definition,
-        context: &AdditionalContext,
+        context: &InheritedContext,
     ) -> anyhow::Result<String> {
         let mut current_context: &Record = record;
 
@@ -282,27 +286,27 @@ impl WhereClause {
 
         let matches = match &self.value {
             Value::Int(where_value) => self.comparator.compare(
-                where_value,
                 &value.parse::<i64>().context(format!(
                     "Expected `{}` field in `{}` table to be a signed integer",
                     self.field, table_name
                 ))?,
+                where_value,
             ),
             Value::Uint(where_value) => self.comparator.compare(
-                where_value,
                 &value.parse::<u64>().context(format!(
                     "Expected `{}` field in `{}` table to be an unsigned integer",
                     self.field, table_name
                 ))?,
+                where_value,
             ),
             Value::Float(where_value) => self.comparator.compare(
-                where_value,
                 &value.parse::<f64>().context(format!(
                     "Expected `{}` field in `{}` table to be a float",
                     self.field, table_name
                 ))?,
+                where_value,
             ),
-            Value::Text(where_value) => self.comparator.compare(where_value, value),
+            Value::Text(where_value) => self.comparator.compare(value, where_value),
         };
 
         Ok(matches)
