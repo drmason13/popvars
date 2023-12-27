@@ -1,21 +1,46 @@
-use std::{
-    borrow::{Borrow, Cow},
-    collections::HashMap,
-    str::FromStr,
+use anyhow::{anyhow, Context as _};
+use parsely::{result_ext::*, Parse};
+use std::str::FromStr;
+
+mod parsing;
+pub use parsing::template;
+use parsing::{expr, for_in};
+
+use crate::{
+    template::{AdditionalContext, ContextIndex},
+    Definition, Record,
 };
 
-use crate::{template::AdditionalContext, Definition, Record, Table};
-
-/// Expr was originally both parsed and evaluated, but since the introduction of Block Expressions
-/// to support looping via `{@ for ctx in table @}` Expr is only seen during parsing.
+/// [`Expr`] is exactly what is contained within `{{ }}` braces.
 ///
-/// It is compiled into a type of [`Node`](crate::template::Node) within a [`Template`](crate::Template).
+/// See also [`BlockExpr`] for what is contained with *opening* `{@ ___ @}` braces.
 ///
-/// Each Node now knows how to evaluate itself into a [`String`].
-#[derive(Debug, PartialEq)]
+/// Each [`BlockExpr`] opens a [`Block`] which closes with a corresponding `{@ end ___ @} braces`
+#[derive(Clone, Debug, PartialEq)]
 pub enum Expr {
     Expand(Expand),
+}
+
+/// A [`Block`] is a [`BlockExpr`] paired with some inner content made up of [`Node`]s
+#[derive(Clone, PartialEq, Debug)]
+pub struct Block {
+    pub expr: BlockExpr,
+    pub nodes: Vec<Node>,
+}
+
+/// Each [`Node`] is a plain [text](Node::Text) [`String`], an (inline) [`Expr`], or a [`Block`].
+/// Each template file is parsed into a [`Vec<Node>`] before being compiled into a [`Template`](crate::Template)
+#[derive(Clone, PartialEq, Debug)]
+pub enum Node {
+    Text(String),
+    Expr(Expr),
     Block(Block),
+}
+
+impl Node {
+    pub fn from_text(text: &str) -> Self {
+        Node::Text(text.into())
+    }
 }
 
 /// Context and Record are interchangable, they are both the exact same type.
@@ -166,7 +191,7 @@ impl Lookup {
 ///
 /// [expression]: Expr
 /// [popvars]: crate
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Expand {
     /// lookup.get(field)
     pub field: String,
@@ -198,14 +223,14 @@ impl Expand {
     }
 
     pub fn run(
-        self,
+        &self,
         record: &Record,
         def: &Definition,
         context: &AdditionalContext,
     ) -> anyhow::Result<String> {
         let mut current_context: &Record = record;
 
-        for lookup in self.path {
+        for lookup in &self.path {
             current_context = lookup.run(current_context, def, context)?;
         }
 
@@ -266,7 +291,7 @@ impl WhereClause {
             Value::Uint(where_value) => self.comparator.compare(
                 where_value,
                 &value.parse::<u64>().context(format!(
-                    "Expected `{}` field in `{}` table to be a unsigned integer",
+                    "Expected `{}` field in `{}` table to be an unsigned integer",
                     self.field, table_name
                 ))?,
             ),
@@ -315,56 +340,25 @@ impl Comparator {
     }
 }
 
-#[derive(Debug, PartialEq)]
-pub struct Block {
-    pub tag: BlockTag,
-    pub content: String,
+#[derive(Clone, Debug, PartialEq)]
+pub enum BlockExpr {
+    ForIn(ForIn),
 }
 
-#[derive(Debug, PartialEq)]
-pub enum BlockTag {
-    ForIn(ForIn),
+impl BlockExpr {
+    /// return the name used to close this [`BlockExpr`]
+    fn close(&self) -> &'static str {
+        match self {
+            BlockExpr::ForIn(_) => "for",
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ForIn {
-    new_context_name: String,
+    pub new_context_name: String,
     table_name: String,
     where_clause: Option<WhereClause>,
-}
-
-impl ForIn {
-    pub fn run<'d>(
-        self,
-        _context: &Context,
-        defs: &'d HashMap<String, Table>,
-    ) -> anyhow::Result<Table> {
-        let new_context = defs.get(&self.new_context_name).ok_or_else(|| {
-            anyhow!(
-                "Failed expansion: defs is missing table `{}`",
-                &self.new_context_name,
-            )
-        })?;
-
-        let new_context = new_context
-            .iter()
-            .map(|record| {
-                if let Some(wc) = &self.where_clause {
-                    Ok((record, wc.matches(record, self.table_name.as_str())?))
-                } else {
-                    Ok((record, true))
-                }
-            })
-            .filter(|result| match result {
-                Ok((_, keep)) => *keep,
-                Err(_) => true,
-            })
-            .map(|result| result.map(|(record, _)| Cow::Borrowed(record.borrow())))
-            .collect::<anyhow::Result<Vec<_>>>()?;
-
-        // Ok(Table::new(self.new_context_name, new_context))
-        todo!()
-    }
 }
 
 impl FromStr for ForIn {
@@ -376,404 +370,17 @@ impl FromStr for ForIn {
     }
 }
 
-use anyhow::{anyhow, Context as _};
-use parsely::{result_ext::*, Parse};
-use parsing::{expr, for_in};
-
-mod parsing {
-    use parsely::*;
-
-    use super::*;
-
-    pub fn expr(input: &str) -> ParseResult<Expr> {
-        let error = match outer_brackets("{{", "}}").lex(input).offset(input) {
-            Ok((inner, remaining)) => match expand().parse(inner).offset(input) {
-                Ok((expand, _)) => {
-                    let expr = Expr::Expand(expand);
-                    return Ok((expr, remaining));
-                }
-                Err(e) => e,
-            },
-            Err(e) => e,
-        };
-
-        let (block_expr, remaining) = block_expr.parse(input).offset(input).merge(error)?;
-
-        Ok((block_expr, remaining))
-    }
-
-    // {@ ___ ... @}  <content>  {@ end ___ @}
-    //    ^^^  these must be the same   ^^^
-    pub fn block_expr(input: &str) -> ParseResult<Expr> {
-        let (opening_tag, remaining) = outer_brackets("{@", "@}").lex(input).offset(input)?;
-
-        let closing_tag = if "for".pad().lex(opening_tag).is_ok() {
-            // we'll use this to lex the closing tag - it has to match the opening tag
-            "for"
-        } else {
-            // unrecognised block expression... one day I'll be add a label like this to the error
-            return Err(parsely::Error::no_match(input));
-        };
-
-        match closing_tag {
-            "for" => {
-                let (tag, _) = for_in().parse(opening_tag).offset(input).offset(input)?;
-                let (block, remaining) = until("{@ end for").lex(remaining).offset(input)?;
-                todo!()
-                // How do we parse nested {@ for ... @} ... {@ end for @}
-                // **inside** a {@ for ... @} ... {@ end for @} ??
-                // oh we just find either the close {@ end for @} OR another opening tag, in which case we
-                // will have to include it in this block as a part of the String.
-                // increment a depth counter, keep going until we get back to 0 +1 for each open, -1 for each close
-                // we'll either get back to - or fail to match input at which point we just bail!
-
-                // we already need a way to push new Contexts somewhere we can use them to expand expressions
-
-                // this is all complicated enough to warrant a new function/parser/combinator :)
+impl ForIn {
+    pub fn ctx_idx(&self) -> ContextIndex {
+        if let Some(ref where_clause) = self.where_clause {
+            ContextIndex::FilteredTable {
+                table_name: self.table_name.clone(),
+                where_clause: where_clause.clone(),
             }
-            _ => unreachable!("unexpected tag name in block expression - this is a bug!"),
-        }
-    }
-
-    // for `allied_country` in `country` where team="Allies"
-    pub fn for_in() -> impl Parse<Output = ForIn> {
-        "for"
-            .pad()
-            .skip_then("`".skip_then(segment("`")))
-            .then_skip("in".pad())
-            .then("`".skip_then(segment("`")))
-            .then(where_clause.pad().optional())
-            .map(|((ctx, table), where_clause)| ForIn {
-                new_context_name: ctx,
-                table_name: table,
-                where_clause,
-            })
-    }
-
-    fn value() -> impl Parse<Output = Value> {
-        let string = "\"".skip_then(segment("\""));
-
-        string
-            .map(Value::Text)
-            .or(uint::<u64>().map(Value::Uint))
-            .or(int::<i64>().map(Value::Int))
-            .or(float::<f64>().map(Value::Float))
-    }
-
-    // where team="Allies"
-    fn where_clause(input: &str) -> ParseResult<WhereClause> {
-        let cmp = switch([
-            ("!=", Comparator::NotEqual),
-            (">=", Comparator::GreaterThanOrEqual),
-            ("<=", Comparator::LessThanOrEqual),
-            (">", Comparator::GreaterThan),
-            ("<", Comparator::LessThan),
-            ("=", Comparator::Equal),
-        ]);
-
-        let (((field, comparator), value), remaining) = "where"
-            .pad()
-            .skip_then(segment("<!=>"))
-            .then(cmp)
-            .then(value())
-            .parse(input)
-            .offset(input)?;
-
-        let where_clause = WhereClause {
-            field,
-            comparator,
-            value,
-        };
-
-        Ok((where_clause, remaining))
-    }
-
-    fn expand() -> impl Parse<Output = Expand> {
-        // Maximum of 100 nested lookups... for sanity's sake!
-        lookup
-            .many(0..=100)
-            .then(segment("${@.}"))
-            .then_end()
-            .map(|(path, field)| Expand { path, field })
-    }
-
-    fn lookup(input: &str) -> ParseResult<'_, Lookup> {
-        let ((table_name, index), remaining) = segment("${@.}")
-            .then(explicit_index().optional())
-            .then_skip('.') // this unambigously means we have a segment remaining after a lookup (required for the field)
-            .parse(input)?;
-
-        Ok((Lookup { index, table_name }, remaining))
-    }
-
-    fn explicit_index() -> impl Parse<Output = String> {
-        '@'.skip_then(segment("@."))
-    }
-
-    fn outer_brackets(open: &'static str, close: &'static str) -> impl Lex {
-        segment_lexer(close).pad_with(open, close)
-    }
-
-    fn segment_lexer(terminating_chars: &'static str) -> impl Lex {
-        escape_lexer('\\').or(none_of(terminating_chars)).many(1..)
-    }
-
-    fn segment(terminating_chars: &'static str) -> impl Parse<Output = String> {
-        let char = char_if(|c| !terminating_chars.contains(c) && c != '\\')
-            .map(|s| s.chars().next().unwrap());
-
-        let inner = escape('\\').or(char).many(1..);
-
-        inner.map(|chars| chars.into_iter().collect::<String>())
-    }
-
-    fn escape(esc: char) -> impl Parse<Output = char> {
-        esc.skip_then(switch([
-            (esc, esc),
-            ('{', '{'),
-            ('}', '}'),
-            ('$', '$'),
-            ('.', '.'),
-            ('@', '@'),
-        ]))
-    }
-
-    fn escape_lexer(esc: char) -> impl Lex {
-        esc.then(esc.or(one_of("{}$.@")))
-    }
-
-    #[cfg(test)]
-    mod tests {
-        use std::fmt::Debug;
-
-        use super::*;
-
-        fn assert_lex_match(lexer: impl Lex, input: &str, expected_match: &str) {
-            let (matched, _) = lexer
-                .lex(input)
-                .unwrap_or_else(|_| panic!("expected: {expected_match} for input: {input}"));
-            assert_eq!(matched, expected_match, "for input: {input}");
-        }
-
-        fn assert_lex_fails(lexer: impl Lex, input: &str, reason: &str) {
-            let result = lexer.lex(input);
-            assert!(
-                result.is_err(),
-                r#"expected lex to fail due to: "{reason}" for input: {input}"#
-            );
-        }
-
-        fn assert_parse_match<O: PartialEq + Debug>(
-            parser: impl Parse<Output = O>,
-            input: &str,
-            expected_match: O,
-        ) {
-            let (matched, _) = dbg!(parser.parse(input)).unwrap_or_else(|_| {
-                panic!("parser failed to match: {expected_match:?} for input: {input}")
-            });
-            assert_eq!(matched, expected_match, "for input: {input}");
-        }
-
-        fn assert_parse_fails(parser: impl Parse, input: &str, reason: &str) {
-            let result = parser.parse(input);
-            assert!(
-                result.is_err(),
-                r#"expected parse to fail due to: "{reason}" for input: {input}"#
-            );
-        }
-
-        #[test]
-        fn test_outer_brackets() {
-            assert_lex_match(outer_brackets("{{", "}}"), "{{country}}", "country");
-
-            assert_lex_fails(
-                outer_brackets("{{", "}}"),
-                "{{country}",
-                "missing closing bracket",
-            );
-            assert_lex_fails(
-                outer_brackets("{{", "}}"),
-                "{country}}",
-                "missing opening bracket",
-            );
-
-            assert_lex_match(outer_brackets("{@", "@}"), "{@country@}", "country");
-
-            assert_lex_fails(
-                outer_brackets("{@", "@}"),
-                "{@country}",
-                "missing closing bracket",
-            );
-            assert_lex_fails(
-                outer_brackets("{@", "@}"),
-                "{country@}",
-                "missing opening bracket",
-            );
-        }
-
-        #[test]
-        fn test_brackets_retain_escape_chars() {
-            assert_lex_match(
-                outer_brackets("{{", "}}"),
-                r"{{country@\{foo\}}}",
-                r"country@\{foo\}",
-            );
-            assert_lex_match(outer_brackets("{{", "}}"), "{{${{}}}}.)", "${{");
-            assert_lex_match(outer_brackets("{{", "}}"), "{{country}}", "country");
-            assert_lex_match(outer_brackets("{{", "}}"), r"{{cou\ntry}}", r"cou\ntry");
-
-            assert_lex_fails(
-                outer_brackets("{{", "}}"),
-                r"{{country\}}",
-                "missing closing bracket",
-            );
-            assert_lex_fails(
-                outer_brackets("{{", "}}"),
-                r"$\(country)",
-                "missing opening bracket",
-            );
-        }
-
-        #[test]
-        fn test_explicit_index() {
-            assert_parse_match(explicit_index(), "@foo", "foo".into());
-            assert_parse_match(explicit_index(), "@foo@bar", "foo".into());
-
-            assert_parse_fails(explicit_index(), "No @", "missing leading @");
-        }
-
-        #[test]
-        fn test_explicit_index_removes_escape_chars() {
-            assert_parse_match(explicit_index(), r"@\$foo", "$foo".into());
-            assert_parse_match(explicit_index(), r"@\@foo", "@foo".into());
-            assert_parse_match(explicit_index(), r"@\$foo\.bar", "$foo.bar".into());
-            assert_parse_match(explicit_index(), r"@foo\{bar\}", "foo{bar}".into());
-        }
-
-        #[test]
-        fn test_lookup() {
-            assert_parse_match(
-                lookup,
-                "table@index.field",
-                Lookup::indirect("table", "index"),
-            );
-
-            assert_parse_match(lookup, "table.field", Lookup::direct("table"));
-
-            assert_parse_fails(lookup, "table", "missing trailing .");
-            assert_parse_fails(lookup, "table@foo", "missing trailing .");
-            assert_parse_fails(lookup, "table@foo@bar.", "@ used twice (no trailing .)");
-        }
-
-        #[test]
-        fn test_expand_direct() {
-            assert_parse_match(expand(), "field", Expand::new("field"));
-            assert_parse_match(expand(), r"\{field\}", Expand::new("{field}"));
-
-            assert_parse_fails(expand(), "{{field}}", "{} are special chars, need escaping");
-        }
-
-        #[test]
-        fn test_expand_lookups() {
-            assert_parse_match(
-                expand(),
-                "table.field",
-                Expand::with_lookup("field", Lookup::direct("table")),
-            );
-
-            assert_parse_match(
-                expand(),
-                "table@index.field",
-                Expand::with_lookup("field", Lookup::indirect("table", "index")),
-            );
-
-            assert_parse_match(
-                expand(),
-                "table@index.b.field",
-                Expand::with_nested_lookups(
-                    "field",
-                    vec![Lookup::indirect("table", "index"), Lookup::direct("b")],
-                ),
-            );
-
-            assert_parse_match(
-                expand(),
-                "a.b.c.d",
-                Expand::with_nested_lookups(
-                    "d",
-                    vec![
-                        Lookup::direct("a"),
-                        Lookup::direct("b"),
-                        Lookup::direct("c"),
-                    ],
-                ),
-            );
-
-            assert_parse_fails(
-                expand(),
-                "table@.field",
-                "@ is followed by . which is invalid if not escaped",
-            );
-        }
-
-        #[test]
-        fn test_expr() {
-            assert_parse_match(expr, "{{country}}", Expr::Expand(Expand::new("country")));
-            assert_parse_match(
-                expr,
-                "{{country.code}}",
-                Expr::Expand(Expand::with_lookup("code", Lookup::direct("country"))),
-            );
-            assert_parse_match(
-                expr,
-                "{{country@Enemy Country.code}}",
-                Expr::Expand(Expand::with_lookup(
-                    "code",
-                    Lookup::indirect("country", "Enemy Country"),
-                )),
-            );
-            assert_parse_match(
-                expr,
-                "{{country.team.code}}",
-                Expr::Expand(Expand::with_nested_lookups(
-                    "code",
-                    vec![Lookup::direct("country"), Lookup::direct("team")],
-                )),
-            );
-            assert_parse_match(
-                expr,
-                "{{country@Enemy Country.team.code}}",
-                Expr::Expand(Expand::with_nested_lookups(
-                    "code",
-                    vec![
-                        Lookup::indirect("country", "Enemy Country"),
-                        Lookup::direct("team"),
-                    ],
-                )),
-            );
-
-            // seems like it ought to fail - but whitespace is valid and significant!
-            assert_parse_match(
-                expr,
-                "{{awueif q34t@23r .r}}",
-                Expr::Expand(Expand::with_lookup(
-                    "r",
-                    Lookup::indirect("awueif q34t", "23r "),
-                )),
-            );
-        }
-
-        #[test]
-        fn test_where_clause() {
-            assert_parse_match(
-                where_clause,
-                r#"where team<="Allies""#,
-                WhereClause::new(
-                    "team",
-                    Comparator::LessThanOrEqual,
-                    Value::Text("Allies".into()),
-                ),
-            );
+        } else {
+            ContextIndex::Table {
+                table_name: self.table_name.clone(),
+            }
         }
     }
 }

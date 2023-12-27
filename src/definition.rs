@@ -39,14 +39,13 @@ impl<'a> Definition {
         match index {
             ContextIndex::Value(_) => None,
             ContextIndex::ValueList(_) => None,
-            ContextIndex::Table(s) => match s.as_str() {
+            ContextIndex::Table { table_name } => match table_name.as_str() {
                 "vars" => Some(&self.vars),
                 def => self.defs.get(def),
             },
             ContextIndex::FilteredTable {
-                context_name,
-                table_name,
-                where_clause,
+                table_name: _,
+                where_clause: _,
             } => todo!("FilteredTable ContextIndex"),
         }
     }
