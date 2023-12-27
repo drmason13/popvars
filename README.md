@@ -184,7 +184,7 @@ You may store additional type definitions in separate files so they can be easil
 
 # Advanced usage
 
-## Looping
+## Looping (done)
 
 you can repeat parts of a template.
 
@@ -196,7 +196,7 @@ This is done using a block expression `{@ ... @}` with the following syntax:
 
 Loops through each record in country that satisfies the "where clause", which refers to the field `team` with the context of each country record.
 
-### Context while Looping
+### Context while Looping (done)
 
 Within the example loop, `allied_country` refers to the current Record in the country Table being templated inside the loop.
 
@@ -204,7 +204,7 @@ Previous contexts remain available, including previous loops!
 
 Note: Loops that define a new context with the same name as an existing context **override** that context within the loop.
 
-## Includes
+## Includes (not done yet)
 
 To manage the complexity of authoring templates, popvars supports reusing templates inside other templates.
 

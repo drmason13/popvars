@@ -16,8 +16,6 @@ pub fn pop(input: &str, def: Definition) -> anyhow::Result<Vec<String>> {
 
     let template = Template::compile(input)?;
 
-    dbg!(&template);
-
     for (n, var) in def.vars.iter().enumerate() {
         let popped = template.pop(var, &def).with_context(|| {
             format!("Error while populating template with row {} of vars", n + 1)

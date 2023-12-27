@@ -120,8 +120,6 @@ impl CompiledNode {
                         let mut merged_ctx = ctx.clone();
                         // OH YE GADS :(
                         merged_ctx.insert(ctx_name.clone(), loop_ctx.clone());
-                        dbg!(&ctx);
-                        dbg!(&merged_ctx);
 
                         for node in &block.nodes {
                             node.pop(output, record, def, &merged_ctx)?;

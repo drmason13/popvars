@@ -62,7 +62,7 @@
 {@ for allied_country in country where team="Allies" @}
 ; {{Major Minor}} NM Hex Lost, Collateral Hit
 {
-#NAME= {{city}} {{Major Minor}} NM Hex, Collateral {{$loop.count}}/{{$loop.total}}
+#NAME= {{city}} {{Major Minor}} NM Hex, Collateral
 #POPUP= {{country@allied_country.possessive}} morale hit as {{city}} falls
 #IMAGE= 
 #SOUND=
