@@ -9,9 +9,9 @@ pub struct TestCase {
 impl TestCase {
     pub fn run(self) -> anyhow::Result<()> {
         let actual = popvars::pop(self.template.as_str(), self.definition)?;
-        let first = &actual[0];
+        let first = actual.join("");
 
-        assert_eq!(&self.expected, first);
+        assert_eq!(self.expected, first);
         Ok(())
     }
 }

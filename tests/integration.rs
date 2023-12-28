@@ -7,6 +7,11 @@ fn for_loop_test_cases() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[test]
+fn if_test_cases() -> Result<(), Box<dyn std::error::Error>> {
+    Ok(run_test_cases("if")?)
+}
+
+#[test]
 fn simple() -> Result<(), Box<dyn std::error::Error>> {
     let test_case = read_test_case("simple.md")?;
     test_case.run()?;

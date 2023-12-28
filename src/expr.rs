@@ -1,14 +1,14 @@
 use anyhow::{anyhow, Context as _};
 use parsely::{result_ext::*, Parse};
-use std::str::FromStr;
+use std::{collections::HashMap, str::FromStr};
 
 mod parsing;
 pub use parsing::template;
-use parsing::{expr, for_in};
+use parsing::{expr, for_tag};
 
 use crate::{
     template::{ContextIndex, InheritedContext},
-    Definition, Record,
+    Record, Table,
 };
 
 /// [`Expr`] is exactly what is contained within `{{ }}` braces.
@@ -131,7 +131,7 @@ impl Lookup {
     pub fn run<'c, 'b>(
         &self,
         context: &'c Context,
-        def: &'c Definition,
+        defs: &'c HashMap<String, Table>,
         block_contexts: &'b InheritedContext,
     ) -> anyhow::Result<&'c Context>
     where
@@ -147,7 +147,7 @@ impl Lookup {
             anyhow!("Failed lookup: field `{index}` did not exist in context `{context:?}`")
         })?;
 
-        let table = def
+        let table = defs
             .get(&self.table_name)
             .ok_or_else(|| anyhow!("Failed lookup: no table named `{}`", &self.table_name))?;
 
@@ -229,13 +229,13 @@ impl Expand {
     pub fn run(
         &self,
         record: &Record,
-        def: &Definition,
+        defs: &HashMap<String, Table>,
         context: &InheritedContext,
     ) -> anyhow::Result<String> {
         let mut current_context: &Record = record;
 
         for lookup in &self.path {
-            current_context = lookup.run(current_context, def, context)?;
+            current_context = lookup.run(current_context, defs, context)?;
         }
 
         let value = current_context.get(&self.field).ok_or_else(|| {
@@ -261,52 +261,52 @@ impl FromStr for Expr {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct WhereClause {
-    field: String,
+pub struct Comparison {
+    expand: Expand,
     comparator: Comparator,
     value: Value,
 }
 
-impl WhereClause {
-    pub fn new(field: &str, comparator: Comparator, value: Value) -> Self {
-        WhereClause {
-            field: field.to_owned(),
+impl Comparison {
+    pub fn new(expand: Expand, comparator: Comparator, value: Value) -> Self {
+        Comparison {
+            expand,
             comparator,
             value,
         }
     }
 
-    pub fn matches(&self, record: &Record, table_name: &str) -> anyhow::Result<bool> {
-        let value = record.get(&self.field).ok_or_else(|| {
-            anyhow!(
-                "Failed expansion: context is missing field `{}`",
-                &self.field,
-            )
-        })?;
+    pub fn matches(
+        &self,
+        record: &Record,
+        def: &HashMap<String, Table>,
+        ctx: &InheritedContext,
+    ) -> anyhow::Result<bool> {
+        let value = self
+            .expand
+            .run(record, def, ctx)
+            .with_context(|| format!("Failed expansion during comparison: `{:?}`", &self.expand))?;
 
         let matches = match &self.value {
             Value::Int(where_value) => self.comparator.compare(
-                &value.parse::<i64>().context(format!(
-                    "Expected `{}` field in `{}` table to be a signed integer",
-                    self.field, table_name
-                ))?,
+                &value
+                    .parse::<i64>()
+                    .context(format!("Expected `{value}` field to be a signed integer"))?,
                 where_value,
             ),
             Value::Uint(where_value) => self.comparator.compare(
                 &value.parse::<u64>().context(format!(
-                    "Expected `{}` field in `{}` table to be an unsigned integer",
-                    self.field, table_name
+                    "Expected `{value}` field to be an unsigned integer"
                 ))?,
                 where_value,
             ),
             Value::Float(where_value) => self.comparator.compare(
-                &value.parse::<f64>().context(format!(
-                    "Expected `{}` field in `{}` table to be a float",
-                    self.field, table_name
-                ))?,
+                &value
+                    .parse::<f64>()
+                    .context(format!("Expected `{value}` field to be a float"))?,
                 where_value,
             ),
-            Value::Text(where_value) => self.comparator.compare(value, where_value),
+            Value::Text(where_value) => self.comparator.compare(&value, where_value),
         };
 
         Ok(matches)
@@ -346,36 +346,38 @@ impl Comparator {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum BlockExpr {
-    ForIn(ForIn),
+    ForTag(ForTag),
+    If(Comparison),
 }
 
 impl BlockExpr {
     /// return the name used to close this [`BlockExpr`]
     fn close(&self) -> &'static str {
         match self {
-            BlockExpr::ForIn(_) => "for",
+            BlockExpr::ForTag(_) => "for",
+            BlockExpr::If(_) => "if",
         }
     }
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct ForIn {
+pub struct ForTag {
     pub new_context_name: String,
     lookup: Lookup,
-    where_clause: Option<WhereClause>,
+    where_clause: Option<Comparison>,
     pub other_clause: bool,
 }
 
-impl FromStr for ForIn {
+impl FromStr for ForTag {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let (for_in, _) = for_in().parse(s).own_err()?;
-        Ok(for_in)
+        let (for_tag, _) = for_tag().parse(s).own_err()?;
+        Ok(for_tag)
     }
 }
 
-impl ForIn {
+impl ForTag {
     pub fn ctx_idx(&self) -> ContextIndex {
         let table_name = self.lookup.table_name.clone();
         let where_clause = self.where_clause.clone();

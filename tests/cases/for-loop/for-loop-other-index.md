@@ -2,7 +2,7 @@ template:
 
 ```
 `{{`index with spaces`}}={{outer_table@`index with spaces`.code}}` will not be included in the for loop due to the use of "other"
-{@ for other outer in outer_table@`index with spaces` where code>0 @}[{{outer.$id}}={{outer.code}}]{@ end for @}
+{@ for other outer in outer_table@`index with spaces` where code > 0 @}[{{outer.$id}}={{outer.code}}]{@ end for @}
 ```
 
 output:

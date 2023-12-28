@@ -9,7 +9,7 @@ use erreport::path::ErrorPaths;
 
 use crate::{
     table::{self, Table},
-    template::ContextIndex,
+    template::{ContextIndex, InheritedContext},
     Record,
 };
 
@@ -29,6 +29,7 @@ pub struct Definition {
 }
 
 impl<'a> Definition {
+    // I'm not sure I actually support this proerly... might be best to remove, it's a bit niche I expect
     pub fn get(&'a self, index: &str) -> Option<&'a Table> {
         match index {
             "vars" => Some(&self.vars),
@@ -40,6 +41,7 @@ impl<'a> Definition {
         &'a self,
         index: &'a ContextIndex,
         record: &'a Record,
+        ctx: &'a InheritedContext,
     ) -> Option<Box<dyn Iterator<Item = &'a Record> + 'a>> {
         match index {
             ContextIndex::ValueList(_) => None,
@@ -56,14 +58,14 @@ impl<'a> Definition {
             } => match table_name.as_str() {
                 "vars" => Some(Box::new(self.vars.iter().filter(move |r| {
                     where_clause
-                        .matches(r, table_name.as_str())
-                        .unwrap_or_else(|_| panic!("Invalid match when evaluating where clause {where_clause:?} for record r {r:?}"))
+                        .matches(r, &self.defs, ctx)
+                        .unwrap_or_else(|_| panic!("Invalid match when evaluating where clause {where_clause:?} for record r {r:?} and table `{}`", table_name.as_str()))
                 }))),
                 def => match self.defs.get(def) {
                     Some(t) => Some(Box::new(t.iter().filter(move |r| {
                         where_clause
-                            .matches(r, table_name.as_str())
-                            .unwrap_or_else(|_| panic!("Invalid match when evaluating where clause {where_clause:?} for record r {r:?}"))
+                            .matches(r, &self.defs, ctx)
+                            .unwrap_or_else(|e| panic!("Invalid match error: {e:?} when evaluating where clause {where_clause:?} for record r {r:?} and table `{}`", table_name.as_str()))
                     }))),
                     None => None
                 },
@@ -99,8 +101,8 @@ impl<'a> Definition {
                             r.get("$id").map(|v| v != this_value)
                             .unwrap_or_else(|| panic!("Missing $id field when indexing `{other_index}` while evaluating other clause for record {r:?}"))
                             && where_clause
-                                .matches(r, table_name.as_str())
-                                .unwrap_or_else(|_| panic!("Invalid match when evaluating where clause {where_clause:?} for record r {r:?}"))
+                                .matches(r, &self.defs, ctx)
+                                .unwrap_or_else(|_| panic!("Invalid match when evaluating where clause {where_clause:?} for record r {r:?} and table `{}`", table_name.as_str()))
                         })))
                     }
                     def => match self.defs.get(def) {
@@ -108,8 +110,8 @@ impl<'a> Definition {
                             r.get("$id").map(|v| v != this_value)
                             .unwrap_or_else(|| panic!("Missing $id field when indexing `{other_index}` while evaluating other clause for record {r:?}"))
                             && where_clause
-                                .matches(r, table_name.as_str())
-                                .unwrap_or_else(|_| panic!("Invalid match when evaluating where clause {where_clause:?} for record r {r:?}"))
+                                .matches(r, &self.defs, ctx)
+                                .unwrap_or_else(|_| panic!("Invalid match when evaluating where clause {where_clause:?} for record r {r:?} and table `{}`", table_name.as_str()))
                         }))),
                         None => None
                     },

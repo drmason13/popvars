@@ -191,7 +191,7 @@ you can repeat parts of a template.
 This is done using a block expression `{@ ... @}` with the following syntax:
 
 ```
-{@ for allied_country in country where team="Allies" @}<template to loop>{@ end for @}
+{@ for allied_country in country where team = "Allies" @}<template to loop>{@ end for @}
 ```
 
 Loops through each record in country that satisfies the "where clause", which refers to the field `team` with the context of each country record.

@@ -43,7 +43,7 @@ pub fn expr(input: &str) -> ParseResult<Expr> {
     Ok((expr, remaining))
 }
 
-// {@ ___ ... @}  <content>  {@ end ___ @}
+// {@ ___ ... @}  <content>  {@ end ___ @} i.e. the whole block including its content - **recursive via node()**
 //    ^^^  these must be the same   ^^^
 pub fn block(input: &str) -> ParseResult<Block> {
     let (expr, remaining) = block_expr(input)?;
@@ -58,6 +58,7 @@ pub fn block(input: &str) -> ParseResult<Block> {
     Ok((Block { expr, nodes }, remaining))
 }
 
+// {@ end name @} i.e. the closing tag of the block expr
 pub fn close_block_expr(name: &str) -> impl Lex + '_ {
     "{@".then(ws().optional())
         .then("end ")
@@ -66,23 +67,37 @@ pub fn close_block_expr(name: &str) -> impl Lex + '_ {
         .then("@}")
 }
 
-// {@ ___ ... @}
+// {@ ___ ... @} i.e. the opening tag of the block expr
 pub fn block_expr(input: &str) -> ParseResult<BlockExpr> {
     let (_, content) = "{@".then(ws().optional()).lex(input)?;
 
     let (tag, _) = until(" ").lex(content)?;
 
+    // It's difficult not to repeat ourselves here since for_in() and if_tag() are different types
+    // (we must return the same type from all match branches) and since Parse isn't object safe we can't use `dyn Parse<Output = BlockExpr>`
+    // so I've gone for slightly creative function usage to avoid repetition
     match tag {
-        "for" => for_in().map(BlockExpr::ForIn),
-        _ => return Err(parsely::Error::no_match(content).offset(input)),
+        "for" => finish_block_tag(for_tag().map(BlockExpr::ForTag), content, input),
+        "if" => finish_block_tag(if_tag().map(BlockExpr::If), content, input),
+        _ => Err(parsely::Error::no_match(content).offset(input)),
     }
-    .then_skip(ws().optional().then("@}"))
-    .parse(content)
-    .offset(input)
+}
+
+//  @}
+pub fn finish_block_tag<'i>(
+    parser: impl Parse<Output = BlockExpr>,
+    content: &'i str,
+    input: &'i str,
+) -> ParseResult<'i, BlockExpr> {
+    parser
+        // This bit is the same for every tag at the end to finish the block tag
+        .then_skip(ws().optional().then("@}"))
+        .parse(content)
+        .offset(input)
 }
 
 // for `allied_country` in `country` where team="Allies"
-pub fn for_in() -> impl Parse<Output = ForIn> {
+pub fn for_tag() -> impl Parse<Output = ForTag> {
     "for"
         .pad()
         .skip_then(other_clause)
@@ -90,12 +105,17 @@ pub fn for_in() -> impl Parse<Output = ForIn> {
         .then_skip("in".pad())
         .then(lookup)
         .then(where_clause.pad().optional())
-        .map(|(((other_clause, ctx), lookup), where_clause)| ForIn {
+        .map(|(((other_clause, ctx), lookup), where_clause)| ForTag {
             new_context_name: ctx,
             lookup,
             other_clause,
             where_clause,
         })
+}
+
+// if team="Allies"
+pub fn if_tag() -> impl Parse<Output = Comparison> {
+    "if".pad().skip_then(comparison)
 }
 
 fn other_clause(input: &str) -> ParseResult<'_, bool> {
@@ -114,7 +134,12 @@ fn value() -> impl Parse<Output = Value> {
 }
 
 // where team="Allies"
-fn where_clause(input: &str) -> ParseResult<WhereClause> {
+fn where_clause(input: &str) -> ParseResult<Comparison> {
+    "where".pad().skip_then(comparison).parse(input)
+}
+
+// team="Allies"
+fn comparison(input: &str) -> ParseResult<Comparison> {
     let cmp = switch([
         ("!=", Comparator::NotEqual),
         (">=", Comparator::GreaterThanOrEqual),
@@ -124,16 +149,14 @@ fn where_clause(input: &str) -> ParseResult<WhereClause> {
         ("=", Comparator::Equal),
     ]);
 
-    let (((field, comparator), value), remaining) = "where"
-        .pad()
-        .skip_then(segment(expr_escape(), "<!=>"))
-        .then(cmp)
+    let (((expand, comparator), value), remaining) = expand_strict()
+        .then(cmp.pad())
         .then(value())
         .parse(input)
         .offset(input)?;
 
-    let where_clause = WhereClause {
-        field,
+    let where_clause = Comparison {
+        expand,
         comparator,
         value,
     };
@@ -141,20 +164,43 @@ fn where_clause(input: &str) -> ParseResult<WhereClause> {
     Ok((where_clause, remaining))
 }
 
-fn expand() -> impl Parse<Output = Expand> {
-    // Maximum of 100 nested lookups... for sanity's sake!
-    lookup
-        .then_skip('.') // this unambigously means we have a segment remaining after a lookup (required for the field)
-        .many(1..=100)
-        .then(segment(expr_escape(), "{@ .}"))
-        .then_skip(ws().many(..))
-        .map(|(path, field)| Expand { path, field })
-        .or(segment(expr_escape(), "{@.}")
+pub struct ExpandParser {
+    strict: bool,
+}
+
+impl Parse for ExpandParser {
+    type Output = Expand;
+
+    fn parse<'i>(&self, input: &'i str) -> ParseResult<'i, Self::Output> {
+        lookup
+            .then_skip('.')
+            .many(1..=100)
+            .then(segment(expr_escape(), "{@ .}"))
+            .then_skip(ws().many(..))
+            .map(|(path, field)| Expand { path, field })
+            .or(if self.strict {
+                // terminate on space
+                segment(expr_escape(), "{@ .}")
+            } else {
+                // allow spaces
+                segment(expr_escape(), "{@.}")
+            }
             .then_skip(ws().many(..))
             .map(|field| Expand {
                 path: Vec::new(),
                 field,
             }))
+            .parse(input)
+    }
+}
+
+// a strict version of expand parser that does not allow significant whitespace without backticks {{field name with spaces}}
+fn expand_strict() -> ExpandParser {
+    ExpandParser { strict: true }
+}
+
+fn expand() -> ExpandParser {
+    ExpandParser { strict: false }
 }
 
 fn lookup(input: &str) -> ParseResult<'_, Lookup> {
@@ -279,7 +325,7 @@ mod tests {
         assert_eq!(
             nodes[0],
             Node::Block(Block {
-                expr: BlockExpr::ForIn(ForIn {
+                expr: BlockExpr::ForTag(ForTag {
                     new_context_name: "field".into(),
                     lookup: Lookup::direct("table_name"),
                     where_clause: None,
@@ -300,7 +346,7 @@ mod tests {
         assert_eq!(
             nodes[0],
             Node::Block(Block {
-                expr: BlockExpr::ForIn(ForIn {
+                expr: BlockExpr::ForTag(ForTag {
                     new_context_name: "field".into(),
                     lookup: Lookup::direct("table_name"),
                     where_clause: None,
@@ -321,7 +367,7 @@ mod tests {
         assert_eq!(
             nodes[0],
             Node::Block(Block {
-                expr: BlockExpr::ForIn(ForIn {
+                expr: BlockExpr::ForTag(ForTag {
                     new_context_name: "field".into(),
                     lookup: Lookup::direct("table_name"),
                     where_clause: None,
@@ -352,7 +398,7 @@ mod tests {
         assert_eq!(
             nodes[3],
             Node::Block(Block {
-                expr: BlockExpr::ForIn(ForIn {
+                expr: BlockExpr::ForTag(ForTag {
                     new_context_name: "field".to_string(),
                     lookup: Lookup::direct("table_name"),
                     where_clause: None,
@@ -380,7 +426,7 @@ mod tests {
         assert_eq!(
             nodes[0],
             Node::Block(Block {
-                expr: BlockExpr::ForIn(ForIn {
+                expr: BlockExpr::ForTag(ForTag {
                     new_context_name: "field".into(),
                     lookup: Lookup::direct("table_name"),
                     where_clause: None,
@@ -417,7 +463,7 @@ mod tests {
         assert_eq!(
             nodes[5],
             Node::Block(Block {
-                expr: BlockExpr::ForIn(ForIn {
+                expr: BlockExpr::ForTag(ForTag {
                     new_context_name: "outer".to_string(),
                     lookup: Lookup::direct("outer_table"),
                     where_clause: None,
@@ -546,6 +592,10 @@ mod tests {
     fn test_expand_direct() {
         assert_parse_match(expand(), "field", Expand::new("field"));
         assert_parse_match(expand(), r"\{field\}", Expand::new("{field}"));
+
+        // `backticks` required for where clauses now, due to them supporting expand expr as the LHS
+        assert_parse_match(expand(), r"`field` <", Expand::new("field"));
+        assert_parse_match(expand(), r"field <", Expand::new("field <")); // this is a valid field/table name even though it looks like a where clause
 
         assert_parse_fails(expand(), "{{field}}", "{} are special chars, need escaping");
     }
@@ -686,9 +736,48 @@ mod tests {
     fn test_where_clause() {
         assert_parse_match(
             where_clause,
-            r#"where team<="Allies""#,
-            WhereClause::new(
-                "team",
+            r#"where team <= "Allies""#,
+            Comparison::new(
+                Expand::new("team"),
+                Comparator::LessThanOrEqual,
+                Value::Text("Allies".into()),
+            ),
+        );
+    }
+
+    #[test]
+    fn test_if_tag() {
+        assert_parse_match(
+            if_tag(),
+            r#"if team <= "Allies""#,
+            Comparison::new(
+                Expand::new("team"),
+                Comparator::LessThanOrEqual,
+                Value::Text("Allies".into()),
+            ),
+        );
+    }
+
+    #[test]
+    fn test_comparison_lookup() {
+        assert_parse_match(
+            comparison,
+            r#"`country`.`team`<="Allies""#,
+            Comparison::new(
+                Expand::with_lookup("team", Lookup::direct("country")),
+                Comparator::LessThanOrEqual,
+                Value::Text("Allies".into()),
+            ),
+        );
+    }
+
+    #[test]
+    fn test_comparison_lookup_no_backticks() {
+        assert_parse_match(
+            comparison,
+            r#"country.team <= "Allies""#,
+            Comparison::new(
+                Expand::with_lookup("team", Lookup::direct("country")),
                 Comparator::LessThanOrEqual,
                 Value::Text("Allies".into()),
             ),

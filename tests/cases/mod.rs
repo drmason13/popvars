@@ -26,7 +26,8 @@ pub fn run_test_cases(dir: &str) -> anyhow::Result<()> {
         let test_case = read_test_case(dir.join(&path).to_string_lossy().as_ref())?;
         test_case
             .run()
-            .with_context(|| format!("Test case: {:?}", path))?;
+            .with_context(|| format!("Test case: {:?}", path))
+            .map_err(|e| dbg!(e))?;
     }
 
     Ok(())

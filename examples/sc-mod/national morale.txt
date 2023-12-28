@@ -59,8 +59,8 @@
     ; Dummy condition position (always satisfied)
     #CONDITION_POSITION= 0,0 [0,0] [0,0] [0] [0]
 }
-; {{city}} {{Major Minor}} NM Hex Lost, Collateral Hits
-{@ for other allied_country in country where team="Allies" @}{
+{@ if country.team = "Allies" @}; {{city}} {{Major Minor}} NM Hex Lost, Collateral Hits
+{@ for other allied_country in country where team = "Allies" @}{
     #NAME= {{city}} {{Major Minor}} NM Hex, Collateral
     #POPUP= {{country@allied_country.possessive}} morale hit as {{city}} falls
     #IMAGE= 
@@ -92,4 +92,4 @@
     ; Dummy condition position (always satisfied)
     #CONDITION_POSITION= 0,0 [0,0] [0,0] [0] [0]
 }
-{@ end for @}
+{@ end for @}{@ end if @}

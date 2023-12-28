@@ -5155,3 +5155,623 @@
     #CONDITION_POSITION= 0,0 [0,0] [0,0] [0] [0]
 }
 
+; Smolensk Minor NM Hex Lost
+{
+    #NAME= Smolensk Minor NM Hex, Enemy Boost
+    #POPUP= Allies celebrate as Smolensk falls
+    #IMAGE= 
+    #SOUND=
+    #FLAG= 1
+    #TYPE= 1
+    #AI= 0
+    #LEVEL= 0
+    ;; Set global variable condition to always trigger (dummy value)
+    #GV= 1[1,100]
+    ;; Set link value to always trigger (dummy value)
+    #LINK= 0[0]
+    #COUNTRY_ID=45
+    #TRIGGER= 100
+    ; Set how many NM points should be gained or lost over X turns
+    #NM_UPDOWN= 1000
+    #NM_TURNS= 1
+    #DATE= 1950/05/01
+    #OBJECTIVE_TEXT_POSITION= 209,68
+    ; Objective is in Soviets hands
+    #ALIGNMENT_POSITION= 209,68 [2]
+    ; Set variable conditions:
+    ; 1st Line - Soviet Union a member of the Soviets, fully mobilised, and not surrendered
+    #VARIABLE_CONDITION= 116 [2] [100] [0]
+    ; 2nd Line - Germany a member of the Allies, fully mobilised, and not surrendered
+    #VARIABLE_CONDITION= 45 [1] [100] [0]
+    ;; Dummy condition position (always satisfied)
+    #CONDITION_POSITION= 0,0 [0,0] [0,0] [0] [0]
+}
+{
+    #NAME= Smolensk Minor NM Hex, Main Hit
+    #POPUP= Soviet morale hit hard as Smolensk falls
+    #IMAGE= 
+    #SOUND=
+    #FLAG= 1
+    #TYPE= 1
+    #AI= 0
+    #LEVEL= 0
+    ; Set global variable condition to always trigger (dummy value)
+    #GV= 1[1,100]
+    ; Set link value to always trigger (dummy value)
+    #LINK= 0[0]
+    #COUNTRY_ID= 116
+    #TRIGGER= 100
+    ; Set how many NM points should be gained or lost over X turns
+    #NM_UPDOWN= -1000
+    #NM_TURNS= 1
+    #DATE= 1950/05/01
+    #OBJECTIVE_TEXT_POSITION= 209,68
+    ; Objective is in Soviets hands
+    #ALIGNMENT_POSITION= 209,68 [2]
+    ; Set variable conditions:
+    ; 1st Line - Soviet Union a member of the Soviets, fully mobilised, and not surrendered
+    #VARIABLE_CONDITION= 116 [2] [100] [0]
+    ; 2nd Line - Germany a member of the Allies, fully mobilised, and not surrendered
+    #VARIABLE_CONDITION= 45 [1] [100] [0]
+    ; Dummy condition position (always satisfied)
+    #CONDITION_POSITION= 0,0 [0,0] [0,0] [0] [0]
+}
+
+; Kiev Minor NM Hex Lost
+{
+    #NAME= Kiev Minor NM Hex, Enemy Boost
+    #POPUP= Allies celebrate as Kiev falls
+    #IMAGE= 
+    #SOUND=
+    #FLAG= 1
+    #TYPE= 1
+    #AI= 0
+    #LEVEL= 0
+    ;; Set global variable condition to always trigger (dummy value)
+    #GV= 1[1,100]
+    ;; Set link value to always trigger (dummy value)
+    #LINK= 0[0]
+    #COUNTRY_ID=45
+    #TRIGGER= 100
+    ; Set how many NM points should be gained or lost over X turns
+    #NM_UPDOWN= 1000
+    #NM_TURNS= 1
+    #DATE= 1950/05/01
+    #OBJECTIVE_TEXT_POSITION= 207,80
+    ; Objective is in Soviets hands
+    #ALIGNMENT_POSITION= 207,80 [2]
+    ; Set variable conditions:
+    ; 1st Line - Soviet Union a member of the Soviets, fully mobilised, and not surrendered
+    #VARIABLE_CONDITION= 116 [2] [100] [0]
+    ; 2nd Line - Germany a member of the Allies, fully mobilised, and not surrendered
+    #VARIABLE_CONDITION= 45 [1] [100] [0]
+    ;; Dummy condition position (always satisfied)
+    #CONDITION_POSITION= 0,0 [0,0] [0,0] [0] [0]
+}
+{
+    #NAME= Kiev Minor NM Hex, Main Hit
+    #POPUP= Soviet morale hit hard as Kiev falls
+    #IMAGE= 
+    #SOUND=
+    #FLAG= 1
+    #TYPE= 1
+    #AI= 0
+    #LEVEL= 0
+    ; Set global variable condition to always trigger (dummy value)
+    #GV= 1[1,100]
+    ; Set link value to always trigger (dummy value)
+    #LINK= 0[0]
+    #COUNTRY_ID= 116
+    #TRIGGER= 100
+    ; Set how many NM points should be gained or lost over X turns
+    #NM_UPDOWN= -1000
+    #NM_TURNS= 1
+    #DATE= 1950/05/01
+    #OBJECTIVE_TEXT_POSITION= 207,80
+    ; Objective is in Soviets hands
+    #ALIGNMENT_POSITION= 207,80 [2]
+    ; Set variable conditions:
+    ; 1st Line - Soviet Union a member of the Soviets, fully mobilised, and not surrendered
+    #VARIABLE_CONDITION= 116 [2] [100] [0]
+    ; 2nd Line - Germany a member of the Allies, fully mobilised, and not surrendered
+    #VARIABLE_CONDITION= 45 [1] [100] [0]
+    ; Dummy condition position (always satisfied)
+    #CONDITION_POSITION= 0,0 [0,0] [0,0] [0] [0]
+}
+
+; Sevastapol Minor NM Hex Lost
+{
+    #NAME= Sevastapol Minor NM Hex, Enemy Boost
+    #POPUP= Allies celebrate as Sevastapol falls
+    #IMAGE= 
+    #SOUND=
+    #FLAG= 1
+    #TYPE= 1
+    #AI= 0
+    #LEVEL= 0
+    ;; Set global variable condition to always trigger (dummy value)
+    #GV= 1[1,100]
+    ;; Set link value to always trigger (dummy value)
+    #LINK= 0[0]
+    #COUNTRY_ID=45
+    #TRIGGER= 100
+    ; Set how many NM points should be gained or lost over X turns
+    #NM_UPDOWN= 1000
+    #NM_TURNS= 1
+    #DATE= 1950/05/01
+    #OBJECTIVE_TEXT_POSITION= 212,96
+    ; Objective is in Soviets hands
+    #ALIGNMENT_POSITION= 212,96 [2]
+    ; Set variable conditions:
+    ; 1st Line - Soviet Union a member of the Soviets, fully mobilised, and not surrendered
+    #VARIABLE_CONDITION= 116 [2] [100] [0]
+    ; 2nd Line - Germany a member of the Allies, fully mobilised, and not surrendered
+    #VARIABLE_CONDITION= 45 [1] [100] [0]
+    ;; Dummy condition position (always satisfied)
+    #CONDITION_POSITION= 0,0 [0,0] [0,0] [0] [0]
+}
+{
+    #NAME= Sevastapol Minor NM Hex, Main Hit
+    #POPUP= Soviet morale hit hard as Sevastapol falls
+    #IMAGE= 
+    #SOUND=
+    #FLAG= 1
+    #TYPE= 1
+    #AI= 0
+    #LEVEL= 0
+    ; Set global variable condition to always trigger (dummy value)
+    #GV= 1[1,100]
+    ; Set link value to always trigger (dummy value)
+    #LINK= 0[0]
+    #COUNTRY_ID= 116
+    #TRIGGER= 100
+    ; Set how many NM points should be gained or lost over X turns
+    #NM_UPDOWN= -1000
+    #NM_TURNS= 1
+    #DATE= 1950/05/01
+    #OBJECTIVE_TEXT_POSITION= 212,96
+    ; Objective is in Soviets hands
+    #ALIGNMENT_POSITION= 212,96 [2]
+    ; Set variable conditions:
+    ; 1st Line - Soviet Union a member of the Soviets, fully mobilised, and not surrendered
+    #VARIABLE_CONDITION= 116 [2] [100] [0]
+    ; 2nd Line - Germany a member of the Allies, fully mobilised, and not surrendered
+    #VARIABLE_CONDITION= 45 [1] [100] [0]
+    ; Dummy condition position (always satisfied)
+    #CONDITION_POSITION= 0,0 [0,0] [0,0] [0] [0]
+}
+
+; Murmansk Minor NM Hex Lost
+{
+    #NAME= Murmansk Minor NM Hex, Enemy Boost
+    #POPUP= Allies celebrate as Murmansk falls
+    #IMAGE= 
+    #SOUND=
+    #FLAG= 1
+    #TYPE= 1
+    #AI= 0
+    #LEVEL= 0
+    ;; Set global variable condition to always trigger (dummy value)
+    #GV= 1[1,100]
+    ;; Set link value to always trigger (dummy value)
+    #LINK= 0[0]
+    #COUNTRY_ID=45
+    #TRIGGER= 100
+    ; Set how many NM points should be gained or lost over X turns
+    #NM_UPDOWN= 1000
+    #NM_TURNS= 1
+    #DATE= 1950/05/01
+    #OBJECTIVE_TEXT_POSITION= 211,16
+    ; Objective is in Soviets hands
+    #ALIGNMENT_POSITION= 211,16 [2]
+    ; Set variable conditions:
+    ; 1st Line - Soviet Union a member of the Soviets, fully mobilised, and not surrendered
+    #VARIABLE_CONDITION= 116 [2] [100] [0]
+    ; 2nd Line - Germany a member of the Allies, fully mobilised, and not surrendered
+    #VARIABLE_CONDITION= 45 [1] [100] [0]
+    ;; Dummy condition position (always satisfied)
+    #CONDITION_POSITION= 0,0 [0,0] [0,0] [0] [0]
+}
+{
+    #NAME= Murmansk Minor NM Hex, Main Hit
+    #POPUP= Soviet morale hit hard as Murmansk falls
+    #IMAGE= 
+    #SOUND=
+    #FLAG= 1
+    #TYPE= 1
+    #AI= 0
+    #LEVEL= 0
+    ; Set global variable condition to always trigger (dummy value)
+    #GV= 1[1,100]
+    ; Set link value to always trigger (dummy value)
+    #LINK= 0[0]
+    #COUNTRY_ID= 116
+    #TRIGGER= 100
+    ; Set how many NM points should be gained or lost over X turns
+    #NM_UPDOWN= -1000
+    #NM_TURNS= 1
+    #DATE= 1950/05/01
+    #OBJECTIVE_TEXT_POSITION= 211,16
+    ; Objective is in Soviets hands
+    #ALIGNMENT_POSITION= 211,16 [2]
+    ; Set variable conditions:
+    ; 1st Line - Soviet Union a member of the Soviets, fully mobilised, and not surrendered
+    #VARIABLE_CONDITION= 116 [2] [100] [0]
+    ; 2nd Line - Germany a member of the Allies, fully mobilised, and not surrendered
+    #VARIABLE_CONDITION= 45 [1] [100] [0]
+    ; Dummy condition position (always satisfied)
+    #CONDITION_POSITION= 0,0 [0,0] [0,0] [0] [0]
+}
+
+; Archangelsk Minor NM Hex Lost
+{
+    #NAME= Archangelsk Minor NM Hex, Enemy Boost
+    #POPUP= Allies celebrate as Archangelsk falls
+    #IMAGE= 
+    #SOUND=
+    #FLAG= 1
+    #TYPE= 1
+    #AI= 0
+    #LEVEL= 0
+    ;; Set global variable condition to always trigger (dummy value)
+    #GV= 1[1,100]
+    ;; Set link value to always trigger (dummy value)
+    #LINK= 0[0]
+    #COUNTRY_ID=45
+    #TRIGGER= 100
+    ; Set how many NM points should be gained or lost over X turns
+    #NM_UPDOWN= 1000
+    #NM_TURNS= 1
+    #DATE= 1950/05/01
+    #OBJECTIVE_TEXT_POSITION= 227,35
+    ; Objective is in Soviets hands
+    #ALIGNMENT_POSITION= 227,35 [2]
+    ; Set variable conditions:
+    ; 1st Line - Soviet Union a member of the Soviets, fully mobilised, and not surrendered
+    #VARIABLE_CONDITION= 116 [2] [100] [0]
+    ; 2nd Line - Germany a member of the Allies, fully mobilised, and not surrendered
+    #VARIABLE_CONDITION= 45 [1] [100] [0]
+    ;; Dummy condition position (always satisfied)
+    #CONDITION_POSITION= 0,0 [0,0] [0,0] [0] [0]
+}
+{
+    #NAME= Archangelsk Minor NM Hex, Main Hit
+    #POPUP= Soviet morale hit hard as Archangelsk falls
+    #IMAGE= 
+    #SOUND=
+    #FLAG= 1
+    #TYPE= 1
+    #AI= 0
+    #LEVEL= 0
+    ; Set global variable condition to always trigger (dummy value)
+    #GV= 1[1,100]
+    ; Set link value to always trigger (dummy value)
+    #LINK= 0[0]
+    #COUNTRY_ID= 116
+    #TRIGGER= 100
+    ; Set how many NM points should be gained or lost over X turns
+    #NM_UPDOWN= -1000
+    #NM_TURNS= 1
+    #DATE= 1950/05/01
+    #OBJECTIVE_TEXT_POSITION= 227,35
+    ; Objective is in Soviets hands
+    #ALIGNMENT_POSITION= 227,35 [2]
+    ; Set variable conditions:
+    ; 1st Line - Soviet Union a member of the Soviets, fully mobilised, and not surrendered
+    #VARIABLE_CONDITION= 116 [2] [100] [0]
+    ; 2nd Line - Germany a member of the Allies, fully mobilised, and not surrendered
+    #VARIABLE_CONDITION= 45 [1] [100] [0]
+    ; Dummy condition position (always satisfied)
+    #CONDITION_POSITION= 0,0 [0,0] [0,0] [0] [0]
+}
+
+; Baku Minor NM Hex Lost
+{
+    #NAME= Baku Minor NM Hex, Enemy Boost
+    #POPUP= Allies celebrate as Baku falls
+    #IMAGE= 
+    #SOUND=
+    #FLAG= 1
+    #TYPE= 1
+    #AI= 0
+    #LEVEL= 0
+    ;; Set global variable condition to always trigger (dummy value)
+    #GV= 1[1,100]
+    ;; Set link value to always trigger (dummy value)
+    #LINK= 0[0]
+    #COUNTRY_ID=45
+    #TRIGGER= 100
+    ; Set how many NM points should be gained or lost over X turns
+    #NM_UPDOWN= 1000
+    #NM_TURNS= 1
+    #DATE= 1950/05/01
+    #OBJECTIVE_TEXT_POSITION= 245,104
+    ; Objective is in Soviets hands
+    #ALIGNMENT_POSITION= 245,104 [2]
+    ; Set variable conditions:
+    ; 1st Line - Soviet Union a member of the Soviets, fully mobilised, and not surrendered
+    #VARIABLE_CONDITION= 116 [2] [100] [0]
+    ; 2nd Line - Germany a member of the Allies, fully mobilised, and not surrendered
+    #VARIABLE_CONDITION= 45 [1] [100] [0]
+    ;; Dummy condition position (always satisfied)
+    #CONDITION_POSITION= 0,0 [0,0] [0,0] [0] [0]
+}
+{
+    #NAME= Baku Minor NM Hex, Main Hit
+    #POPUP= Soviet morale hit hard as Baku falls
+    #IMAGE= 
+    #SOUND=
+    #FLAG= 1
+    #TYPE= 1
+    #AI= 0
+    #LEVEL= 0
+    ; Set global variable condition to always trigger (dummy value)
+    #GV= 1[1,100]
+    ; Set link value to always trigger (dummy value)
+    #LINK= 0[0]
+    #COUNTRY_ID= 116
+    #TRIGGER= 100
+    ; Set how many NM points should be gained or lost over X turns
+    #NM_UPDOWN= -1000
+    #NM_TURNS= 1
+    #DATE= 1950/05/01
+    #OBJECTIVE_TEXT_POSITION= 245,104
+    ; Objective is in Soviets hands
+    #ALIGNMENT_POSITION= 245,104 [2]
+    ; Set variable conditions:
+    ; 1st Line - Soviet Union a member of the Soviets, fully mobilised, and not surrendered
+    #VARIABLE_CONDITION= 116 [2] [100] [0]
+    ; 2nd Line - Germany a member of the Allies, fully mobilised, and not surrendered
+    #VARIABLE_CONDITION= 45 [1] [100] [0]
+    ; Dummy condition position (always satisfied)
+    #CONDITION_POSITION= 0,0 [0,0] [0,0] [0] [0]
+}
+
+; Rostov Minor NM Hex Lost
+{
+    #NAME= Rostov Minor NM Hex, Enemy Boost
+    #POPUP= Allies celebrate as Rostov falls
+    #IMAGE= 
+    #SOUND=
+    #FLAG= 1
+    #TYPE= 1
+    #AI= 0
+    #LEVEL= 0
+    ;; Set global variable condition to always trigger (dummy value)
+    #GV= 1[1,100]
+    ;; Set link value to always trigger (dummy value)
+    #LINK= 0[0]
+    #COUNTRY_ID=45
+    #TRIGGER= 100
+    ; Set how many NM points should be gained or lost over X turns
+    #NM_UPDOWN= 1000
+    #NM_TURNS= 1
+    #DATE= 1950/05/01
+    #OBJECTIVE_TEXT_POSITION= 225,88
+    ; Objective is in Soviets hands
+    #ALIGNMENT_POSITION= 225,88 [2]
+    ; Set variable conditions:
+    ; 1st Line - Soviet Union a member of the Soviets, fully mobilised, and not surrendered
+    #VARIABLE_CONDITION= 116 [2] [100] [0]
+    ; 2nd Line - Germany a member of the Allies, fully mobilised, and not surrendered
+    #VARIABLE_CONDITION= 45 [1] [100] [0]
+    ;; Dummy condition position (always satisfied)
+    #CONDITION_POSITION= 0,0 [0,0] [0,0] [0] [0]
+}
+{
+    #NAME= Rostov Minor NM Hex, Main Hit
+    #POPUP= Soviet morale hit hard as Rostov falls
+    #IMAGE= 
+    #SOUND=
+    #FLAG= 1
+    #TYPE= 1
+    #AI= 0
+    #LEVEL= 0
+    ; Set global variable condition to always trigger (dummy value)
+    #GV= 1[1,100]
+    ; Set link value to always trigger (dummy value)
+    #LINK= 0[0]
+    #COUNTRY_ID= 116
+    #TRIGGER= 100
+    ; Set how many NM points should be gained or lost over X turns
+    #NM_UPDOWN= -1000
+    #NM_TURNS= 1
+    #DATE= 1950/05/01
+    #OBJECTIVE_TEXT_POSITION= 225,88
+    ; Objective is in Soviets hands
+    #ALIGNMENT_POSITION= 225,88 [2]
+    ; Set variable conditions:
+    ; 1st Line - Soviet Union a member of the Soviets, fully mobilised, and not surrendered
+    #VARIABLE_CONDITION= 116 [2] [100] [0]
+    ; 2nd Line - Germany a member of the Allies, fully mobilised, and not surrendered
+    #VARIABLE_CONDITION= 45 [1] [100] [0]
+    ; Dummy condition position (always satisfied)
+    #CONDITION_POSITION= 0,0 [0,0] [0,0] [0] [0]
+}
+
+; Moscow Major NM Hex Lost
+{
+    #NAME= Moscow Major NM Hex, Enemy Boost
+    #POPUP= Allies celebrate as Moscow falls
+    #IMAGE= 
+    #SOUND=
+    #FLAG= 1
+    #TYPE= 1
+    #AI= 0
+    #LEVEL= 0
+    ;; Set global variable condition to always trigger (dummy value)
+    #GV= 1[1,100]
+    ;; Set link value to always trigger (dummy value)
+    #LINK= 0[0]
+    #COUNTRY_ID=45
+    #TRIGGER= 100
+    ; Set how many NM points should be gained or lost over X turns
+    #NM_UPDOWN= 3000
+    #NM_TURNS= 1
+    #DATE= 1950/05/01
+    #OBJECTIVE_TEXT_POSITION= 221,65
+    ; Objective is in Soviets hands
+    #ALIGNMENT_POSITION= 221,65 [2]
+    ; Set variable conditions:
+    ; 1st Line - Soviet Union a member of the Soviets, fully mobilised, and not surrendered
+    #VARIABLE_CONDITION= 116 [2] [100] [0]
+    ; 2nd Line - Germany a member of the Allies, fully mobilised, and not surrendered
+    #VARIABLE_CONDITION= 45 [1] [100] [0]
+    ;; Dummy condition position (always satisfied)
+    #CONDITION_POSITION= 0,0 [0,0] [0,0] [0] [0]
+}
+{
+    #NAME= Moscow Major NM Hex, Main Hit
+    #POPUP= Soviet morale hit hard as Moscow falls
+    #IMAGE= 
+    #SOUND=
+    #FLAG= 1
+    #TYPE= 1
+    #AI= 0
+    #LEVEL= 0
+    ; Set global variable condition to always trigger (dummy value)
+    #GV= 1[1,100]
+    ; Set link value to always trigger (dummy value)
+    #LINK= 0[0]
+    #COUNTRY_ID= 116
+    #TRIGGER= 100
+    ; Set how many NM points should be gained or lost over X turns
+    #NM_UPDOWN= -3000
+    #NM_TURNS= 1
+    #DATE= 1950/05/01
+    #OBJECTIVE_TEXT_POSITION= 221,65
+    ; Objective is in Soviets hands
+    #ALIGNMENT_POSITION= 221,65 [2]
+    ; Set variable conditions:
+    ; 1st Line - Soviet Union a member of the Soviets, fully mobilised, and not surrendered
+    #VARIABLE_CONDITION= 116 [2] [100] [0]
+    ; 2nd Line - Germany a member of the Allies, fully mobilised, and not surrendered
+    #VARIABLE_CONDITION= 45 [1] [100] [0]
+    ; Dummy condition position (always satisfied)
+    #CONDITION_POSITION= 0,0 [0,0] [0,0] [0] [0]
+}
+
+; Stalingrad Major NM Hex Lost
+{
+    #NAME= Stalingrad Major NM Hex, Enemy Boost
+    #POPUP= Allies celebrate as Stalingrad falls
+    #IMAGE= 
+    #SOUND=
+    #FLAG= 1
+    #TYPE= 1
+    #AI= 0
+    #LEVEL= 0
+    ;; Set global variable condition to always trigger (dummy value)
+    #GV= 1[1,100]
+    ;; Set link value to always trigger (dummy value)
+    #LINK= 0[0]
+    #COUNTRY_ID=45
+    #TRIGGER= 100
+    ; Set how many NM points should be gained or lost over X turns
+    #NM_UPDOWN= 3000
+    #NM_TURNS= 1
+    #DATE= 1950/05/01
+    #OBJECTIVE_TEXT_POSITION= 234,85
+    ; Objective is in Soviets hands
+    #ALIGNMENT_POSITION= 234,85 [2]
+    ; Set variable conditions:
+    ; 1st Line - Soviet Union a member of the Soviets, fully mobilised, and not surrendered
+    #VARIABLE_CONDITION= 116 [2] [100] [0]
+    ; 2nd Line - Germany a member of the Allies, fully mobilised, and not surrendered
+    #VARIABLE_CONDITION= 45 [1] [100] [0]
+    ;; Dummy condition position (always satisfied)
+    #CONDITION_POSITION= 0,0 [0,0] [0,0] [0] [0]
+}
+{
+    #NAME= Stalingrad Major NM Hex, Main Hit
+    #POPUP= Soviet morale hit hard as Stalingrad falls
+    #IMAGE= 
+    #SOUND=
+    #FLAG= 1
+    #TYPE= 1
+    #AI= 0
+    #LEVEL= 0
+    ; Set global variable condition to always trigger (dummy value)
+    #GV= 1[1,100]
+    ; Set link value to always trigger (dummy value)
+    #LINK= 0[0]
+    #COUNTRY_ID= 116
+    #TRIGGER= 100
+    ; Set how many NM points should be gained or lost over X turns
+    #NM_UPDOWN= -3000
+    #NM_TURNS= 1
+    #DATE= 1950/05/01
+    #OBJECTIVE_TEXT_POSITION= 234,85
+    ; Objective is in Soviets hands
+    #ALIGNMENT_POSITION= 234,85 [2]
+    ; Set variable conditions:
+    ; 1st Line - Soviet Union a member of the Soviets, fully mobilised, and not surrendered
+    #VARIABLE_CONDITION= 116 [2] [100] [0]
+    ; 2nd Line - Germany a member of the Allies, fully mobilised, and not surrendered
+    #VARIABLE_CONDITION= 45 [1] [100] [0]
+    ; Dummy condition position (always satisfied)
+    #CONDITION_POSITION= 0,0 [0,0] [0,0] [0] [0]
+}
+
+; Leningrad Major NM Hex Lost
+{
+    #NAME= Leningrad Major NM Hex, Enemy Boost
+    #POPUP= Allies celebrate as Leningrad falls
+    #IMAGE= 
+    #SOUND=
+    #FLAG= 1
+    #TYPE= 1
+    #AI= 0
+    #LEVEL= 0
+    ;; Set global variable condition to always trigger (dummy value)
+    #GV= 1[1,100]
+    ;; Set link value to always trigger (dummy value)
+    #LINK= 0[0]
+    #COUNTRY_ID=45
+    #TRIGGER= 100
+    ; Set how many NM points should be gained or lost over X turns
+    #NM_UPDOWN= 3000
+    #NM_TURNS= 1
+    #DATE= 1950/05/01
+    #OBJECTIVE_TEXT_POSITION= 206,52
+    ; Objective is in Soviets hands
+    #ALIGNMENT_POSITION= 206,52 [2]
+    ; Set variable conditions:
+    ; 1st Line - Soviet Union a member of the Soviets, fully mobilised, and not surrendered
+    #VARIABLE_CONDITION= 116 [2] [100] [0]
+    ; 2nd Line - Germany a member of the Allies, fully mobilised, and not surrendered
+    #VARIABLE_CONDITION= 45 [1] [100] [0]
+    ;; Dummy condition position (always satisfied)
+    #CONDITION_POSITION= 0,0 [0,0] [0,0] [0] [0]
+}
+{
+    #NAME= Leningrad Major NM Hex, Main Hit
+    #POPUP= Soviet morale hit hard as Leningrad falls
+    #IMAGE= 
+    #SOUND=
+    #FLAG= 1
+    #TYPE= 1
+    #AI= 0
+    #LEVEL= 0
+    ; Set global variable condition to always trigger (dummy value)
+    #GV= 1[1,100]
+    ; Set link value to always trigger (dummy value)
+    #LINK= 0[0]
+    #COUNTRY_ID= 116
+    #TRIGGER= 100
+    ; Set how many NM points should be gained or lost over X turns
+    #NM_UPDOWN= -3000
+    #NM_TURNS= 1
+    #DATE= 1950/05/01
+    #OBJECTIVE_TEXT_POSITION= 206,52
+    ; Objective is in Soviets hands
+    #ALIGNMENT_POSITION= 206,52 [2]
+    ; Set variable conditions:
+    ; 1st Line - Soviet Union a member of the Soviets, fully mobilised, and not surrendered
+    #VARIABLE_CONDITION= 116 [2] [100] [0]
+    ; 2nd Line - Germany a member of the Allies, fully mobilised, and not surrendered
+    #VARIABLE_CONDITION= 45 [1] [100] [0]
+    ; Dummy condition position (always satisfied)
+    #CONDITION_POSITION= 0,0 [0,0] [0,0] [0] [0]
+}
+

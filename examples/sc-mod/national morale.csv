@@ -26,3 +26,13 @@ Italy,Palermo,Major,3000,Soviet Union
 USA,Washington,Major,3000,Soviet Union
 USA,New York,Major,3000,Soviet Union
 USA,Boston,Major,3000,Soviet Union
+Soviet Union,Smolensk,Minor,1000,Germany
+Soviet Union,Kiev,Minor,1000,Germany
+Soviet Union,Sevastapol,Minor,1000,Germany
+Soviet Union,Murmansk,Minor,1000,Germany
+Soviet Union,Archangelsk,Minor,1000,Germany
+Soviet Union,Baku,Minor,1000,Germany
+Soviet Union,Rostov,Minor,1000,Germany
+Soviet Union,Moscow,Major,3000,Germany
+Soviet Union,Stalingrad,Major,3000,Germany
+Soviet Union,Leningrad,Major,3000,Germany

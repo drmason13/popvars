@@ -4,7 +4,7 @@ template:
 foo is in vars: {{foo}}
 
 outer_table is in defs: {{outer_table.code}}
-{@ for outer in outer_table where code<=200 @}
+{@ for outer in outer_table where code <= 200 @}
     `outer.code` now refers to the same table as `outer_table.code`
     {{outer.$id}}={{outer.code}}
 {@ end for @}

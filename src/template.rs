@@ -11,7 +11,7 @@ use anyhow::anyhow;
 use parsely::result_ext::*;
 
 use crate::{
-    expr::{template, Block, BlockExpr, Node, WhereClause},
+    expr::{template, Block, BlockExpr, Comparison, Node},
     table::Value,
     Definition, Expr, Record,
 };
@@ -35,7 +35,8 @@ pub enum CompiledNode {
 pub struct CompiledBlock {
     pub expr: BlockExpr,
     pub nodes: Vec<CompiledNode>,
-    pub block_ctx_idx: (String, ContextIndex),
+    // not all Blocks provide new context
+    pub block_ctx_idx: Option<(String, ContextIndex)>,
 }
 
 impl Template {
@@ -58,12 +59,19 @@ impl Template {
             },
             Node::Block(Block { expr, nodes }) => {
                 let (compiled_block_nodes, block_ctx_idx) = match expr {
-                    BlockExpr::ForIn(ref for_in) => (
+                    BlockExpr::ForTag(ref for_tag) => (
                         nodes
                             .into_iter()
                             .map(Template::compile_node)
                             .collect::<Vec<_>>(),
-                        (for_in.new_context_name.clone(), for_in.ctx_idx()),
+                        Some((for_tag.new_context_name.clone(), for_tag.ctx_idx())),
+                    ),
+                    BlockExpr::If(_) => (
+                        nodes
+                            .into_iter()
+                            .map(Template::compile_node)
+                            .collect::<Vec<_>>(),
+                        None,
                     ),
                 };
 
@@ -104,27 +112,37 @@ impl CompiledNode {
     {
         match self {
             CompiledNode::Expr(Expr::Expand(expand)) => {
-                output.push_str(&expand.run(record, def, ctx)?);
+                output.push_str(&expand.run(record, &def.defs, ctx)?);
                 Ok(())
             }
             CompiledNode::Block(block) => match &block.expr {
-                BlockExpr::ForIn(_) => {
-                    let (ctx_name, ctx_idx) = &block.block_ctx_idx;
+                BlockExpr::ForTag(_) => {
+                    let (ctx_name, ctx_idx) = &block
+                        .block_ctx_idx
+                        .as_ref()
+                        .expect("ForTag always has a new Context");
                     let contexts = def
-                        .index(ctx_idx, record)
+                        .index(ctx_idx, record, ctx)
                         .ok_or_else(|| anyhow!("Failed to index context `{ctx_name}` for block"))?;
 
-                    // TODO: stop the cloning insanity!
+                    // PERF: avoid clone?
                     for loop_ctx in contexts {
-                        // OUCH! performance!!!
                         let mut merged_ctx = ctx.clone();
-                        // OH YE GADS :(
                         merged_ctx.insert(ctx_name.clone(), loop_ctx.clone());
 
                         for node in &block.nodes {
                             node.pop(output, record, def, &merged_ctx)?;
                         }
                     }
+                    Ok(())
+                }
+                BlockExpr::If(comparison) => {
+                    if comparison.matches(record, &def.defs, ctx)? {
+                        for node in &block.nodes {
+                            node.pop(output, record, def, ctx)?;
+                        }
+                    }
+
                     Ok(())
                 }
             },
@@ -154,7 +172,7 @@ pub enum ContextIndex {
     /// A Where Clause selects a filtered list of Records from a Table to provide as context
     FilteredTableWhere {
         table_name: String,
-        where_clause: WhereClause,
+        where_clause: Comparison,
     },
 
     /// An Other Clause filters out one Record that matches a lookup from the given table Table, and selects all the others to provide as context
@@ -166,7 +184,7 @@ pub enum ContextIndex {
     /// A Where Clause and an Other Clause combined selects all other records that also match the Where Clause
     FilteredTableOtherWhere {
         table_name: String,
-        where_clause: WhereClause,
+        where_clause: Comparison,
         index: Option<String>,
     },
 }
