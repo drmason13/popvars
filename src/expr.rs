@@ -361,8 +361,9 @@ impl BlockExpr {
 #[derive(Debug, Clone, PartialEq)]
 pub struct ForIn {
     pub new_context_name: String,
-    table_name: String,
+    lookup: Lookup,
     where_clause: Option<WhereClause>,
+    pub other_clause: bool,
 }
 
 impl FromStr for ForIn {
@@ -376,15 +377,24 @@ impl FromStr for ForIn {
 
 impl ForIn {
     pub fn ctx_idx(&self) -> ContextIndex {
-        if let Some(ref where_clause) = self.where_clause {
-            ContextIndex::FilteredTable {
-                table_name: self.table_name.clone(),
-                where_clause: where_clause.clone(),
-            }
-        } else {
-            ContextIndex::Table {
-                table_name: self.table_name.clone(),
-            }
+        let table_name = self.lookup.table_name.clone();
+        let where_clause = self.where_clause.clone();
+        let other_clause = self.other_clause;
+        match (where_clause, other_clause) {
+            (None, false) => ContextIndex::Table { table_name },
+            (Some(where_clause), false) => ContextIndex::FilteredTableWhere {
+                table_name,
+                where_clause,
+            },
+            (None, true) => ContextIndex::FilteredTableOther {
+                table_name,
+                index: self.lookup.index.clone(),
+            },
+            (Some(where_clause), true) => ContextIndex::FilteredTableOtherWhere {
+                table_name,
+                where_clause,
+                index: self.lookup.index.clone(),
+            },
         }
     }
 }

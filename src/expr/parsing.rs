@@ -27,14 +27,17 @@ pub fn outer_brackets(open: &'static str, close: &'static str) -> impl Lex {
 
 pub fn expr(input: &str) -> ParseResult<Expr> {
     let (inner, remaining) = outer_brackets("{{", "}}").lex(input)?;
-    let (expr, _) = expr_escape()
+    let (expr, close) = expr_escape()
         .lexing()
         .many(1..)
         .or_until("}}")
         .lex(inner)
         .offset(input)?;
 
-    let (expand, _) = expand().parse(expr).offset(input)?;
+    let _ = end().lex(close)?;
+
+    let (expand, after) = expand().pad().parse(expr).offset(input)?;
+    let _ = end().lex(after)?;
 
     let expr = Expr::Expand(expand);
     Ok((expr, remaining))
@@ -82,15 +85,25 @@ pub fn block_expr(input: &str) -> ParseResult<BlockExpr> {
 pub fn for_in() -> impl Parse<Output = ForIn> {
     "for"
         .pad()
-        .skip_then(string('`').or(segment(expr_escape(), " ").then_skip(" ")))
+        .skip_then(other_clause)
+        .then(segment(expr_escape(), " ").then_skip(" "))
         .then_skip("in".pad())
-        .then(string('`').or(segment(expr_escape(), " ").then_skip(" ")))
+        .then(lookup)
         .then(where_clause.pad().optional())
-        .map(|((ctx, table), where_clause)| ForIn {
+        .map(|(((other_clause, ctx), lookup), where_clause)| ForIn {
             new_context_name: ctx,
-            table_name: table,
+            lookup,
+            other_clause,
             where_clause,
         })
+}
+
+fn other_clause(input: &str) -> ParseResult<'_, bool> {
+    if let Ok((_, remaining)) = "other ".lex(input) {
+        Ok((true, remaining))
+    } else {
+        Ok((false, input))
+    }
 }
 
 fn value() -> impl Parse<Output = Value> {
@@ -131,23 +144,29 @@ fn where_clause(input: &str) -> ParseResult<WhereClause> {
 fn expand() -> impl Parse<Output = Expand> {
     // Maximum of 100 nested lookups... for sanity's sake!
     lookup
-        .many(0..=100)
-        .then(segment(expr_escape(), "{@.}"))
-        .then_end()
+        .then_skip('.') // this unambigously means we have a segment remaining after a lookup (required for the field)
+        .many(1..=100)
+        .then(segment(expr_escape(), "{@ .}"))
+        .then_skip(ws().many(..))
         .map(|(path, field)| Expand { path, field })
+        .or(segment(expr_escape(), "{@.}")
+            .then_skip(ws().many(..))
+            .map(|field| Expand {
+                path: Vec::new(),
+                field,
+            }))
 }
 
 fn lookup(input: &str) -> ParseResult<'_, Lookup> {
-    let ((table_name, index), remaining) = segment(expr_escape(), "{@.}")
+    let ((table_name, index), remaining) = segment(expr_escape(), "{@ .}")
         .then(explicit_index().optional())
-        .then_skip('.') // this unambigously means we have a segment remaining after a lookup (required for the field)
         .parse(input)?;
 
     Ok((Lookup { index, table_name }, remaining))
 }
 
 fn explicit_index() -> impl Parse<Output = String> {
-    '@'.skip_then(segment(expr_escape(), "@."))
+    '@'.skip_then(segment(expr_escape(), "@ ."))
 }
 
 fn string(quote: char) -> impl Parse<Output = String> {
@@ -164,10 +183,10 @@ fn segment(
     escape: impl Parse<Output = char>,
     terminating_chars: &'static str,
 ) -> impl Parse<Output = String> {
-    escape
+    string('`').or(escape
         .many(1..)
         .or_until(one_of(terminating_chars))
-        .collect::<String>()
+        .collect::<String>())
 }
 
 fn expr_escape() -> EscapeSequence<5, Parsing> {
@@ -235,8 +254,10 @@ mod tests {
         input: &str,
         expected_match: O,
     ) {
-        let (matched, _) = parser.parse(input).unwrap_or_else(|_| {
-            panic!("parser failed to match: {expected_match:?} for input: {input}")
+        let (matched, _) = parser.parse(input).unwrap_or_else(|e| {
+            panic!(
+                "parser failed to match: {expected_match:?} for input: {input} with error: {e:?}"
+            )
         });
         assert_eq!(matched, expected_match, "for input: {input}");
     }
@@ -260,8 +281,9 @@ mod tests {
             Node::Block(Block {
                 expr: BlockExpr::ForIn(ForIn {
                     new_context_name: "field".into(),
-                    table_name: "table_name".into(),
-                    where_clause: None
+                    lookup: Lookup::direct("table_name"),
+                    where_clause: None,
+                    other_clause: false,
                 }),
                 nodes: vec![Node::Text("loop content".into())],
             })
@@ -280,8 +302,9 @@ mod tests {
             Node::Block(Block {
                 expr: BlockExpr::ForIn(ForIn {
                     new_context_name: "field".into(),
-                    table_name: "table_name".into(),
-                    where_clause: None
+                    lookup: Lookup::direct("table_name"),
+                    where_clause: None,
+                    other_clause: false,
                 }),
                 nodes: vec![Node::Text("loop content".into())],
             })
@@ -300,8 +323,9 @@ mod tests {
             Node::Block(Block {
                 expr: BlockExpr::ForIn(ForIn {
                     new_context_name: "field".into(),
-                    table_name: "table_name".into(),
-                    where_clause: None
+                    lookup: Lookup::direct("table_name"),
+                    where_clause: None,
+                    other_clause: false,
                 }),
                 nodes: vec![Node::Expr(Expr::Expand(Expand {
                     field: "loop expr".into(),
@@ -330,8 +354,9 @@ mod tests {
             Node::Block(Block {
                 expr: BlockExpr::ForIn(ForIn {
                     new_context_name: "field".to_string(),
-                    table_name: "table_name".to_string(),
+                    lookup: Lookup::direct("table_name"),
                     where_clause: None,
+                    other_clause: false,
                 }),
                 nodes: vec![
                     Node::from_text("loop content"),
@@ -344,6 +369,27 @@ mod tests {
         );
         assert_eq!(nodes[4], Node::from_text("\ntext content after loop\n"));
         assert_eq!(nodes.len(), 5);
+    }
+
+    #[test]
+    fn test_for_other() {
+        let block = "{@ for other `field` in `table_name` @}inner{@ end for @}";
+        let (nodes, remaining) = template(block).unwrap();
+
+        assert_eq!(remaining, "");
+        assert_eq!(
+            nodes[0],
+            Node::Block(Block {
+                expr: BlockExpr::ForIn(ForIn {
+                    new_context_name: "field".into(),
+                    lookup: Lookup::direct("table_name"),
+                    where_clause: None,
+                    other_clause: true,
+                }),
+                nodes: vec![Node::from_text("inner")],
+            })
+        );
+        assert_eq!(nodes.len(), 1);
     }
 
     #[test]
@@ -373,8 +419,9 @@ mod tests {
             Node::Block(Block {
                 expr: BlockExpr::ForIn(ForIn {
                     new_context_name: "outer".to_string(),
-                    table_name: "outer_table".to_string(),
+                    lookup: Lookup::direct("outer_table"),
                     where_clause: None,
+                    other_clause: false,
                 }),
                 nodes: vec![
                     Node::from_text("\n    `outer.code` now refers to the same table as `outer_table.code`\n    "),
@@ -461,7 +508,7 @@ mod tests {
     fn test_close_block_expr() {
         assert_lex_match(
             close_block_expr("for"),
-            node().parse("{{loop expr}}{@ end for @}").unwrap().1,
+            expr.parse("{{loop expr}}{@ end for @}").unwrap().1,
             "{@ end for @}",
         );
     }
@@ -490,10 +537,9 @@ mod tests {
         );
 
         assert_parse_match(lookup, "table.field", Lookup::direct("table"));
-
-        assert_parse_fails(lookup, "table", "missing trailing .");
-        assert_parse_fails(lookup, "table@foo", "missing trailing .");
-        assert_parse_fails(lookup, "table@foo@bar.", "@ used twice (no trailing .)");
+        assert_parse_match(lookup, "table", Lookup::direct("table"));
+        assert_parse_match(lookup, "table@foo", Lookup::indirect("table", "foo"));
+        assert_parse_match(lookup, "table@foo@bar.", Lookup::indirect("table", "foo"));
     }
 
     #[test]
@@ -520,6 +566,24 @@ mod tests {
 
         assert_parse_match(
             expand(),
+            "`table name`.field",
+            Expand::with_lookup("field", Lookup::direct("table name")),
+        );
+
+        assert_parse_match(
+            expand(),
+            "`table name`.`field name`",
+            Expand::with_lookup("field name", Lookup::direct("table name")),
+        );
+
+        assert_parse_match(
+            expand(),
+            "table.`field name`",
+            Expand::with_lookup("field name", Lookup::direct("table")),
+        );
+
+        assert_parse_match(
+            expand(),
             "table@index.b.field",
             Expand::with_nested_lookups(
                 "field",
@@ -539,12 +603,6 @@ mod tests {
                 ],
             ),
         );
-
-        assert_parse_fails(
-            expand(),
-            "table@.field",
-            "@ is followed by . which is invalid if not escaped",
-        );
     }
 
     #[test]
@@ -557,7 +615,7 @@ mod tests {
         );
         assert_parse_match(
             expr,
-            "{{country@Enemy Country.code}}",
+            "{{country@`Enemy Country`.code}}",
             Expr::Expand(Expand::with_lookup(
                 "code",
                 Lookup::indirect("country", "Enemy Country"),
@@ -573,7 +631,7 @@ mod tests {
         );
         assert_parse_match(
             expr,
-            "{{country@Enemy Country.team.code}}",
+            "{{country@`Enemy Country`.team.code}}",
             Expr::Expand(Expand::with_nested_lookups(
                 "code",
                 vec![
@@ -585,23 +643,41 @@ mod tests {
 
         assert_parse_match(
             expr,
-            "{{ country@Enemy Country.team.code }}",
+            "{{ country@`Enemy Country`.team.code }}",
             Expr::Expand(Expand::with_nested_lookups(
-                "code ",
+                "code",
                 vec![
-                    Lookup::indirect(" country", "Enemy Country"),
+                    Lookup::indirect("country", "Enemy Country"),
                     Lookup::direct("team"),
                 ],
             )),
         );
 
-        // seems like it ought to fail - but whitespace is valid and significant!
-        assert_parse_match(
+        // seems like it ought to fail - and it does now!
+        assert_parse_fails(
             expr,
             "{{awueif q34t@23r .r}}",
+            "Whitespace is only significant if wrapped in `backticks`",
+        );
+
+        assert_parse_match(
+            segment(expr_escape(), "@ ."),
+            r"\.field",
+            ".field".to_string(),
+        );
+
+        assert_parse_fails(
+            expr,
+            "{{table@.field}}",
+            "@ is followed by . which is invalid if not escaped",
+        );
+
+        assert_parse_match(
+            expr,
+            r"{{table@dr\.index.code}}",
             Expr::Expand(Expand::with_lookup(
-                "r",
-                Lookup::indirect("awueif q34t", "23r "),
+                "code",
+                Lookup::indirect("table", "dr.index"),
             )),
         );
     }

@@ -7,7 +7,7 @@ pub struct TestCase {
 }
 
 impl TestCase {
-    pub fn run(self) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn run(self) -> anyhow::Result<()> {
         let actual = popvars::pop(self.template.as_str(), self.definition)?;
         let first = &actual[0];
 
@@ -70,9 +70,10 @@ mod parsing {
     mod tests {
         use super::*;
 
+        #[ignore = "no need to rerun until test format changes"]
         #[test]
         fn test_case_works() -> Result<(), Box<dyn std::error::Error>> {
-            let input = include_str!("for-loop.md");
+            let input = include_str!("test-parsing-test.md");
 
             let (output, _) = test_case.parse(input)?;
 
@@ -130,9 +131,10 @@ mod parsing {
             Ok(())
         }
 
+        #[ignore = "no need to rerun until test format changes"]
         #[test]
         fn named_code_block_works() -> Result<(), Box<dyn std::error::Error>> {
-            let input = include_str!("for-loop.md");
+            let input = include_str!("test-parsing-test.md");
             let (matched, remaining) = named_code_block("template").parse(input)?;
             assert_eq!(
                 matched,

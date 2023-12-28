@@ -111,7 +111,7 @@ impl CompiledNode {
                 BlockExpr::ForIn(_) => {
                     let (ctx_name, ctx_idx) = &block.block_ctx_idx;
                     let contexts = def
-                        .index(ctx_idx)
+                        .index(ctx_idx, record)
                         .ok_or_else(|| anyhow!("Failed to index context `{ctx_name}` for block"))?;
 
                     // TODO: stop the cloning insanity!
@@ -152,8 +152,21 @@ pub enum ContextIndex {
     Table { table_name: String },
 
     /// A Where Clause selects a filtered list of Records from a Table to provide as context
-    FilteredTable {
+    FilteredTableWhere {
         table_name: String,
         where_clause: WhereClause,
+    },
+
+    /// An Other Clause filters out one Record that matches a lookup from the given table Table, and selects all the others to provide as context
+    FilteredTableOther {
+        table_name: String,
+        index: Option<String>,
+    },
+
+    /// A Where Clause and an Other Clause combined selects all other records that also match the Where Clause
+    FilteredTableOtherWhere {
+        table_name: String,
+        where_clause: WhereClause,
+        index: Option<String>,
     },
 }

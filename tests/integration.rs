@@ -1,6 +1,10 @@
-use cases::read_test_case;
-
 mod cases;
+use cases::{read_test_case, run_test_cases};
+
+#[test]
+fn for_loop_test_cases() -> Result<(), Box<dyn std::error::Error>> {
+    Ok(run_test_cases("for-loop")?)
+}
 
 #[test]
 fn simple() -> Result<(), Box<dyn std::error::Error>> {

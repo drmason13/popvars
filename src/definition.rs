@@ -39,6 +39,7 @@ impl<'a> Definition {
     pub fn index(
         &'a self,
         index: &'a ContextIndex,
+        record: &'a Record,
     ) -> Option<Box<dyn Iterator<Item = &'a Record> + 'a>> {
         match index {
             ContextIndex::ValueList(_) => None,
@@ -49,7 +50,7 @@ impl<'a> Definition {
                     None => None,
                 },
             },
-            ContextIndex::FilteredTable {
+            ContextIndex::FilteredTableWhere {
                 table_name,
                 where_clause,
             } => match table_name.as_str() {
@@ -66,6 +67,53 @@ impl<'a> Definition {
                     }))),
                     None => None
                 },
+            },
+            ContextIndex::FilteredTableOther {
+                table_name,
+                index,
+            } => {
+                let other_index = index.as_ref().unwrap_or(table_name);
+                let this_value = record.get(other_index)?;
+                match table_name.as_str() {
+                    "vars" => {
+                        Some(Box::new(self.vars.iter().filter(move |r| {
+                            r.get("$id").map(|v| v != this_value)
+                            .unwrap_or_else(|| panic!("Missing $id field when indexing `{other_index}` while evaluating other clause for record {r:?}"))
+                        })))
+                    }
+                    def => match self.defs.get(def) {
+                        Some(t) => Some(Box::new(t.iter().filter(move |r| {
+                            r.get("$id").map(|v| v != this_value)
+                            .unwrap_or_else(|| panic!("Missing $id field when indexing `{other_index}` while evaluating other clause for record {r:?}"))
+                        }))),
+                        None => None
+                    },
+                }
+            },
+            ContextIndex::FilteredTableOtherWhere { table_name, where_clause, index } => {
+                let other_index = index.as_ref().unwrap_or(table_name);
+                let this_value = record.get(other_index)?;
+                match table_name.as_str() {
+                    "vars" => {
+                        Some(Box::new(self.vars.iter().filter(move |r| {
+                            r.get("$id").map(|v| v != this_value)
+                            .unwrap_or_else(|| panic!("Missing $id field when indexing `{other_index}` while evaluating other clause for record {r:?}"))
+                            && where_clause
+                                .matches(r, table_name.as_str())
+                                .unwrap_or_else(|_| panic!("Invalid match when evaluating where clause {where_clause:?} for record r {r:?}"))
+                        })))
+                    }
+                    def => match self.defs.get(def) {
+                        Some(t) => Some(Box::new(t.iter().filter(move |r| {
+                            r.get("$id").map(|v| v != this_value)
+                            .unwrap_or_else(|| panic!("Missing $id field when indexing `{other_index}` while evaluating other clause for record {r:?}"))
+                            && where_clause
+                                .matches(r, table_name.as_str())
+                                .unwrap_or_else(|_| panic!("Invalid match when evaluating where clause {where_clause:?} for record r {r:?}"))
+                        }))),
+                        None => None
+                    },
+                }
             },
         }
     }
