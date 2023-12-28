@@ -77,8 +77,14 @@ pub fn block_expr(input: &str) -> ParseResult<BlockExpr> {
     // (we must return the same type from all match branches) and since Parse isn't object safe we can't use `dyn Parse<Output = BlockExpr>`
     // so I've gone for slightly creative function usage to avoid repetition
     match tag {
+        // for and if need closing (aka finishing)
         "for" => finish_block_tag(for_tag().map(BlockExpr::ForTag), content, input),
         "if" => finish_block_tag(if_tag().map(BlockExpr::If), content, input),
+        // pop is self closing
+        "pop" => include()
+            .map(BlockExpr::Include)
+            .parse(content)
+            .offset(input),
         _ => Err(parsely::Error::no_match(content).offset(input)),
     }
 }
@@ -113,17 +119,29 @@ pub fn for_tag() -> impl Parse<Output = ForTag> {
         })
 }
 
-// if team="Allies"
-pub fn if_tag() -> impl Parse<Output = Comparison> {
-    "if".pad().skip_then(comparison)
-}
-
 fn other_clause(input: &str) -> ParseResult<'_, bool> {
     if let Ok((_, remaining)) = "other ".lex(input) {
         Ok((true, remaining))
     } else {
         Ok((false, input))
     }
+}
+
+// if team="Allies"
+pub fn if_tag() -> impl Parse<Output = Comparison> {
+    "if".pad().skip_then(comparison)
+}
+
+// pop `template_path` with field as include_var_name
+pub fn include() -> impl Parse<Output = (String, String, String)> {
+    "pop"
+        .pad()
+        .skip_then(string('`').or(segment(expr_escape(), " ").then_skip(" ")))
+        .then_skip("with".pad())
+        .then(string('`').or(segment(expr_escape(), " ").then_skip(" ")))
+        .then_skip("as".pad())
+        .then(string('`').or(segment(expr_escape(), " ").then_skip(" ")))
+        .map(|((template_path, field), include_var_name)| (template_path, field, include_var_name))
 }
 
 fn value() -> impl Parse<Output = Value> {

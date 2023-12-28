@@ -73,6 +73,10 @@ impl Template {
                             .collect::<Vec<_>>(),
                         None,
                     ),
+                    BlockExpr::Include((template_path, field, include_var_name)) => {
+                        dbg!(template_path, field, include_var_name);
+                        unimplemented!("Includes are not yet implemented")
+                    }
                 };
 
                 CompiledNode::Block(CompiledBlock {
@@ -144,6 +148,10 @@ impl CompiledNode {
                     }
 
                     Ok(())
+                }
+                BlockExpr::Include((template_path, field, include_var_name)) => {
+                    dbg!(template_path, field, include_var_name);
+                    unimplemented!("Includes are not yet implemented")
                 }
             },
             CompiledNode::Text(s) => {

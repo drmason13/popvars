@@ -348,6 +348,8 @@ impl Comparator {
 pub enum BlockExpr {
     ForTag(ForTag),
     If(Comparison),
+    // TODO: Includes, see README
+    Include((String, String, String)),
 }
 
 impl BlockExpr {
@@ -356,6 +358,7 @@ impl BlockExpr {
         match self {
             BlockExpr::ForTag(_) => "for",
             BlockExpr::If(_) => "if",
+            BlockExpr::Include(_) => unreachable!("Includes are self closing"),
         }
     }
 }
