@@ -73,9 +73,9 @@ mod parsing {
         #[ignore = "no need to rerun until test format changes"]
         #[test]
         fn test_case_works() -> Result<(), Box<dyn std::error::Error>> {
-            let input = include_str!("test-parsing-test.md");
+            let input = include_str!("test-parsing-test.md").replace("\r\n", "\n");
 
-            let (output, _) = test_case.parse(input)?;
+            let (output, _) = test_case.parse(input.as_str()).own_err()?;
 
             assert_eq!(
                 output.template,
@@ -134,8 +134,10 @@ mod parsing {
         #[ignore = "no need to rerun until test format changes"]
         #[test]
         fn named_code_block_works() -> Result<(), Box<dyn std::error::Error>> {
-            let input = include_str!("test-parsing-test.md");
-            let (matched, remaining) = named_code_block("template").parse(input)?;
+            let input = include_str!("test-parsing-test.md").replace("\r\n", "\n");
+            let (matched, remaining) = named_code_block("template")
+                .parse(input.as_str())
+                .own_err()?;
             assert_eq!(
                 matched,
                 indoc! {"
