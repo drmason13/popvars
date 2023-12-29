@@ -10,26 +10,29 @@ struct Cli {
     #[arg(short, long)]
     vars: PathBuf,
 
+    /// The path to the template file to render
+    #[arg(short, long)]
+    template: PathBuf,
+
+    /// path to a .csv file containing a type (can be specified multiple times to pull in multiple types) the type name will be the filename
     #[arg(long)]
     types: Vec<PathBuf>,
 }
 
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
-    // read args
-    /*
-        popvars TEMPLATE - path to the template text file to be populated
 
-       -d, --defs : path to a .ods spreadsheet containing vars and type definitions.
-       -v, --vars : path to a .csv file containing vars
-       --types : path to a .csv file containing a type (can be specified multiple times to pull in multiple types) the type name will be the filename
-       -o, --out : path
-    */
+    let template = std::fs::read_to_string(&cli.template)?;
 
-    // read definitions spreadsheet/csv file(s) and create definitions
-    let definitions = Definition::from_csv_files(&cli.vars, &cli.types);
+    let definitions = Definition::from_csv_files(&cli.vars, &cli.types)?;
 
-    println!("{definitions:?}");
+    let popped = popvars::pop(&template, definitions)?;
+
+    #[cfg(windows)]
+    println!("{}", popped.join("\r\n"));
+
+    #[cfg(unix)]
+    println!("{}", popped.join("\n"));
 
     Ok(())
 }

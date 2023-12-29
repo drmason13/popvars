@@ -16,6 +16,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let popped = popvars::pop(&input, definitions)?;
 
+    #[cfg(windows)]
+    println!("{}", popped.join("\r\n"));
+
+    #[cfg(unix)]
     println!("{}", popped.join("\n"));
 
     Ok(())

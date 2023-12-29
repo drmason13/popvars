@@ -14,7 +14,9 @@ pub fn read_test_case(name: &str) -> anyhow::Result<TestCase> {
     } else {
         PathBuf::from("tests").join("cases").join(name)
     };
-    let input = std::fs::read_to_string(&path).path(path)?;
+    let input = std::fs::read_to_string(&path)
+        .path(path)?
+        .replace("\r\n", "\n");
     let (test_case, _) = test_utils::parse_test_case(input.as_str()).own_err()?;
     Ok(test_case)
 }
