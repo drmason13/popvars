@@ -14,9 +14,9 @@ struct Cli {
     #[arg(short, long)]
     template: PathBuf,
 
-    /// path to a .csv file containing a type (can be specified multiple times to pull in multiple types) the type name will be the filename
-    #[arg(long)]
-    types: Vec<PathBuf>,
+    /// path to a .csv file containing a def (can be specified multiple times to pull in multiple defs) the def name will be the filename
+    #[arg(short, long)]
+    defs: Vec<PathBuf>,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -24,9 +24,9 @@ fn main() -> anyhow::Result<()> {
 
     let template = std::fs::read_to_string(&cli.template)?;
 
-    let definitions = Definition::from_csv_files(&cli.vars, &cli.types)?;
+    let definition = Definition::from_csv_files(&cli.vars, &cli.defs)?;
 
-    let popped = popvars::pop(&template, definitions)?;
+    let popped = popvars::pop(&template, definition)?;
 
     #[cfg(windows)]
     println!("{}", popped.join("\r\n"));
