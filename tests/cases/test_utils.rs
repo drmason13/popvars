@@ -4,6 +4,7 @@ pub struct TestCase {
     pub definition: Definition,
     pub template: String,
     pub expected: String,
+    pub includes: Vec<(String, String)>,
 }
 
 impl TestCase {
@@ -15,13 +16,12 @@ impl TestCase {
         Ok(())
     }
 }
-
 pub use parsing::test_case as parse_test_case;
 
 mod parsing {
     use super::*;
     use indoc::indoc;
-    use parsely::{result_ext::*, until, ws, Lex, Parse, ParseResult};
+    use parsely::{none_of, result_ext::*, until, ws, Lex, Parse, ParseResult};
 
     pub fn code_block() -> impl Parse<Output = String> {
         // note: code_block will contain a trailing \n
@@ -36,7 +36,8 @@ mod parsing {
     }
 
     pub fn dynamic_named_code_block() -> impl Parse<Output = (String, String)> {
-        until(":")
+        none_of("\r\n:")
+            .many(1..)
             .map(str::to_string)
             .then_skip(":")
             .pad()
@@ -51,7 +52,19 @@ mod parsing {
             .offset(input)?;
 
         let (defs, remaining) = dynamic_named_code_block()
-            .many(0..10)
+            .many(0..20)
+            .or_until("## includes")
+            .parse(remaining)
+            .offset(input)?;
+
+        let (_, remaining) = "## includes"
+            .pad()
+            .optional()
+            .lex(remaining)
+            .offset(input)?;
+
+        let (includes, remaining) = dynamic_named_code_block()
+            .many(0..20)
             .parse(remaining)
             .offset(input)?;
 
@@ -61,6 +74,7 @@ mod parsing {
             definition,
             template,
             expected,
+            includes,
         };
 
         Ok((output, remaining))
@@ -70,7 +84,6 @@ mod parsing {
     mod tests {
         use super::*;
 
-        #[ignore = "no need to rerun until test format changes"]
         #[test]
         fn test_case_works() -> Result<(), Box<dyn std::error::Error>> {
             let input = include_str!("test-parsing-test.md").replace("\r\n", "\n");
@@ -128,10 +141,12 @@ mod parsing {
             );
             assert_eq!(output.definition.vars.records.len(), 1);
 
+            assert_eq!(output.includes.len(), 2);
+            assert_eq!(output.includes[0], ("includes/part one.txt".into(), "This is another template that may be included in the topmost template. {{ included }}\n\nIt is free to include further includes inside itself: {@ pop `includes/part two.txt` with \"Hi part two, it's 'part one' here\" as `variable for part two` @}\n".into()));
+
             Ok(())
         }
 
-        #[ignore = "no need to rerun until test format changes"]
         #[test]
         fn named_code_block_works() -> Result<(), Box<dyn std::error::Error>> {
             let input = include_str!("test-parsing-test.md").replace("\r\n", "\n");
@@ -150,46 +165,43 @@ mod parsing {
                     {@ end for @}
                 "}
             );
-            assert_eq!(
-                remaining,
-                indoc! {"
+            assert!(remaining.starts_with(indoc! {"
 
 
-                    output:
+                        output:
 
-                    ```
-                    foo is in vars: 1
+                        ```
+                        foo is in vars: 1
 
-                    outer_table is in defs: 100
+                        outer_table is in defs: 100
 
-                        `outer.code` now refers to the same table as `outer_table.code`
-                        a=100
+                            `outer.code` now refers to the same table as `outer_table.code`
+                            a=100
 
-                        `outer.code` now refers to the same table as `outer_table.code`
-                        b=200
+                            `outer.code` now refers to the same table as `outer_table.code`
+                            b=200
 
-                        `outer.code` now refers to the same table as `outer_table.code`
-                        c=300
+                            `outer.code` now refers to the same table as `outer_table.code`
+                            c=300
 
-                    ```
+                        ```
 
-                    vars:
+                        vars:
 
-                    ```
-                    foo,outer_table
-                    1,a
-                    ```
+                        ```
+                        foo,outer_table
+                        1,a
+                        ```
 
-                    outer_table:
+                        outer_table:
 
-                    ```
-                    $id,code
-                    a,100
-                    b,200
-                    c,300
-                    ```
-                "}
-            );
+                        ```
+                        $id,code
+                        a,100
+                        b,200
+                        c,300
+                        ```
+                    "}));
             Ok(())
         }
     }

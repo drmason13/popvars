@@ -43,3 +43,19 @@ a,100
 b,200
 c,300
 ```
+
+## includes
+
+includes/part one.txt:
+
+```
+This is another template that may be included in the topmost template. {{ included }}
+
+It is free to include further includes inside itself: {@ pop `includes/part two.txt` with "Hi part two, it's 'part one' here" as `variable for part two` @}
+```
+
+includes/part two.txt:
+
+```
+{{variable for part two}}
+```
